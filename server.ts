@@ -4,6 +4,7 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { spawn } from "child_process";
 
 dotenv.config();
 
@@ -712,6 +713,49 @@ function getGeminiClient(customApiKey?: string): GoogleGenAI {
     });
   }
   return aiClient;
+}
+
+// Executing Gemini AI requests via Python backend as requested
+function runPythonAI(apiKey: string, message: string, history: any[], systemPrompt: string, model: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const pythonProcess = spawn("python3", [path.join(process.cwd(), "backend_ai.py")]);
+    let outputData = "";
+    let errorData = "";
+
+    pythonProcess.stdout.on("data", (data) => {
+      outputData += data.toString();
+    });
+
+    pythonProcess.stderr.on("data", (data) => {
+      errorData += data.toString();
+    });
+
+    pythonProcess.on("close", (code) => {
+      if (code !== 0) {
+        return reject(new Error(`Python process exited with code ${code}. Error: ${errorData}`));
+      }
+      try {
+        const parsed = JSON.parse(outputData.trim());
+        if (parsed.error) {
+          return reject(new Error(parsed.error + (parsed.details ? `: ${JSON.stringify(parsed.details)}` : "")));
+        }
+        resolve(parsed.response);
+      } catch (err) {
+        reject(new Error(`Failed to parse Python stdout: ${outputData}. Raw stderr: ${errorData}`));
+      }
+    });
+
+    const inputPayload = JSON.stringify({
+      api_key: apiKey,
+      message,
+      history,
+      system_prompt: systemPrompt,
+      model
+    });
+
+    pythonProcess.stdin.write(inputPayload);
+    pythonProcess.stdin.end();
+  });
 }
 
 // ----------------------------------------------------
@@ -1430,25 +1474,16 @@ app.post("/api/ai/chat", async (req, res) => {
       parts: [{ text: h.text }]
     }));
 
-    // Generate output content with fallback mechanisms
-    let response;
+    // Generate output content using Python AI Engine first as requested
+    let responseText = "";
     try {
-      response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: [
-          ...chatHistory,
-          { role: "user", parts: [{ text: message }] }
-        ],
-        config: {
-          systemInstruction: systemPrompt,
-          temperature: 0.7
-        }
-      });
-    } catch (primaryErr: any) {
-      console.warn("Primary model 'gemini-3.5-flash' failed, trying fallback model 'gemini-3.1-flash-lite'...", primaryErr.message);
+      console.log("Routing AI chat request through Python backend AI engine...");
+      responseText = await runPythonAI(key, message, history || [], systemPrompt, "gemini-2.5-flash");
+    } catch (pythonErr: any) {
+      console.warn("Python AI Engine failed, trying fallback to Node @google/genai...", pythonErr.message);
       try {
-        response = await ai.models.generateContent({
-          model: "gemini-3.1-flash-lite",
+        const response = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
           contents: [
             ...chatHistory,
             { role: "user", parts: [{ text: message }] }
@@ -1458,8 +1493,9 @@ app.post("/api/ai/chat", async (req, res) => {
             temperature: 0.7
           }
         });
-      } catch (secondaryErr: any) {
-        console.warn("Secondary model 'gemini-3.1-flash-lite' failed, falling back to simulated core...", secondaryErr.message);
+        responseText = response.text || "AI completed generation but returned no text content.";
+      } catch (nodeErr: any) {
+        console.warn("Node AI client failed, falling back to simulated core...", nodeErr.message);
         
         // Dynamic simulated responses matching the user's queries if possible
         const userMsg = message.toLowerCase();
@@ -1487,7 +1523,7 @@ app.post("/api/ai/chat", async (req, res) => {
       }
     }
 
-    res.json({ response: response.text || "AI completed generation but returned no text content." });
+    res.json({ response: responseText });
   } catch (error: any) {
     console.error("Gemini API Error in proxy controller:", error);
     res.status(500).json({ error: "Failed to communicate with AI core", details: error.message });
