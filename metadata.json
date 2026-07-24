@@ -1,0 +1,6 @@
+{
+  "name": "Cyber Hub IT Club",
+  "description": "Enterprise digital web platform for the Savar Cantonment Public School and College IT Club. Integrates cyber learning tools, interactive exams, Cyber AI assistant, and administrative consoles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
