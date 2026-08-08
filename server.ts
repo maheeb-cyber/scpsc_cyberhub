@@ -213,7 +213,7 @@ const getInitialData = (): DatabaseSchema => ({
       id: "page-scpsc-info",
       title: "SCPSC IT Code of Conduct",
       icon: "ShieldAlert",
-      content: "## SCPSC IT Club Code of Conduct\n\nWelcome to the official **Cyber Hub** portal of **Savar Cantonment Public School and College IT Club**.\n\nAll members must strictly follow our core computational rules:\n\n1. **Integrity in Hacking**: All penetration tests and cyber exercises must be conducted within authorized target sandboxes. No offensive testing against real-world school or college infrastructure is permitted.\n2. **Collaborative Innovation**: Assist junior cadets with programming logic (C, C++, Python, Javascript, React).\n3. **Regular Attendance**: Standard members are expected to attend weekly offline club sessions. Attendance is logged and affects badging and certification rewards.\n\nFor any inquiries or permissions, please contact our General Secretary or IT Coordinator through the Support portal.",
+      content: "## SCPSC IT Club Code of Conduct\n\nWelcome to the official **Cyber Hub** portal of **Savar Cantonment Public School and College IT Club**.\n\nAll members must strictly follow our core computational rules:\n\n1. **Integrity in Hacking**: All penetration tests and cyber exercises must be conducted within authorized target sandboxes. No offensive testing against real-world school or college infrastructure is permitted.\n2. **Collaborative Innovation**: Assist junior students with programming logic (C, C++, Python, Javascript, React).\n3. **Regular Attendance**: Standard members are expected to attend weekly offline club sessions. Attendance is logged and affects badging and certification rewards.\n\nFor any inquiries or permissions, please contact our General Secretary or IT Coordinator through the Support portal.",
       updatedAt: new Date().toISOString()
     }
   ],
@@ -869,12 +869,12 @@ app.post("/api/auth/register", (req, res) => {
   const newProfile: Profile = {
     userId,
     username,
-    bio: `Hi! I am @${username}, Class ${className} (${section}) cadet. Proud member of Savar Cantonment Public School & College IT Club.`,
+    bio: `Hi! I am @${username}, Class ${className} (${section}) student. Proud member of Savar Cantonment Public School & College IT Club.`,
     avatar: avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200",
     banner: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000",
     skills: parsedSkills,
     socialLinks: {},
-    badges: ["New Recruit", `Class ${className} Cadet`],
+    badges: ["New Recruit", `Class ${className} Student`],
     achievements: [],
     theme: "Dark",
     accentColor: "#38bdf8",
@@ -901,7 +901,7 @@ app.post("/api/auth/register", (req, res) => {
   db.notifications.push({
     id: `notif-${Date.now()}`,
     userId: "all",
-    title: "New Cadet Registered",
+    title: "New Student Registered",
     message: `@${username} (Roll: ${roll}, Class: ${className}) has joined SCPSC IT Club. Welcome!`,
     type: "system",
     timestamp: new Date().toISOString(),
@@ -1436,7 +1436,7 @@ app.post("/api/ai/chat", async (req, res) => {
       } else if (selectedMode === "graphic design") {
         mockAnswer = "UI/UX Console: Focus on responsive grids, Tailwind CSS utility spacing, and high-contrast typography pairing. Let's design gorgeous dashboards together!";
       } else {
-        mockAnswer = "Affirmative Cadet! The Cyber Hub AI assistant is online and ready.";
+        mockAnswer = "Affirmative Student! The Cyber Hub AI assistant is online and ready.";
       }
       return res.json({ response: `[FALLBACK MODE - Simulated AI Security Core]\n\n${mockAnswer}` });
     }
@@ -1509,7 +1509,7 @@ app.post("/api/ai/chat", async (req, res) => {
           fallbackResponse = "Robotics & Hardware Core: Most modular microcontrollers (like Arduino) process instructions via a setup and execution loop. To interface with sensors:\n\n```cpp\nconst int SENSOR_PIN = A0;\n\nvoid setup() {\n    Serial.begin(9600);\n    pinMode(SENSOR_PIN, INPUT);\n}\n\nvoid loop() {\n    int signal = analogRead(SENSOR_PIN);\n    Serial.println(signal);\n    delay(100);\n}\n```\nWhat hardware controllers, motor drivers, or sensor systems are you designing?";
         } else {
           const mockAnswers = [
-            "Affirmative Cadet! The Cyber Hub AI assistant is active. I can assist with competitive programming, hardware integration, and defensive security frameworks. What project are we compiling today?",
+            "Affirmative Student! The Cyber Hub AI assistant is active. I can assist with competitive programming, hardware integration, and defensive security frameworks. What project are we compiling today?",
             "At Savar Cantonment Public School & College IT Club, we foster innovation across Cyber Security, Software Engineering, Web Development, Robotics, and AI. Each department runs hands-on workshops!",
             "Welcome to the security interface! If you are learning web architectures, make sure to read about the OWASP Top 10 vulnerabilities. Let me know what concepts you'd like to dive into.",
             "As an interactive learning node, I can generate boilerplate structures for your lab sessions. Let me know which stack or microcontroller you're using!"

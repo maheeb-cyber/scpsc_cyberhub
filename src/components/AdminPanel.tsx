@@ -753,7 +753,7 @@ export default function AdminPanel({ user, onExit, languageCode = "en" }: AdminP
                   </div>
                 </div>
 
-                {/* Cadets Scale across Departments */}
+                {/* Students Scale across Departments */}
                 <div className="lg:col-span-5 p-5 border border-gray-900 bg-gray-950/40 rounded-2xl space-y-4">
                   <h3 className="text-xs font-mono text-gray-400 uppercase font-bold tracking-wider">
                     Department Member Density
@@ -799,7 +799,7 @@ export default function AdminPanel({ user, onExit, languageCode = "en" }: AdminP
             </div>
           )}
 
-          {/* 2. MODULE: CADETS & RBAC */}
+          {/* 2. MODULE: STUDENTS & RBAC */}
           {activeMenu === "users" && (
             <div className="space-y-6">
               <div className="border-b border-gray-900 pb-3">

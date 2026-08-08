@@ -104,7 +104,18 @@ export default function App() {
     setProfile(null);
     localStorage.removeItem("cyber_hub_token");
     localStorage.removeItem("cyber_hub_user");
+    sessionStorage.clear();
     setScreen("landing");
+  };
+
+  const handleResetPage = () => {
+    setUser(null);
+    setToken("");
+    setProfile(null);
+    localStorage.clear();
+    sessionStorage.clear();
+    setScreen("landing");
+    window.location.reload();
   };
 
   const handleProfileUpdate = (updatedProfile: Profile) => {

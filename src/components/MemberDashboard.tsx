@@ -45,7 +45,7 @@ export default function MemberDashboard({
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [activeCalendarFilter, setActiveCalendarFilter] = useState<string>("all");
 
-  // Custom states requested by savar cadet
+  // Custom states requested by savar student
   const [adminUnlocked, setAdminUnlocked] = useState<boolean>(() => {
     return localStorage.getItem("adminUnlocked") === "true";
   });
@@ -612,7 +612,7 @@ export default function MemberDashboard({
     }
   };
 
-  // Gallery item uploader for standard cadets
+  // Gallery item uploader for standard students
   const handleUploadGalleryItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadUrl || !uploadTitle) {
@@ -818,12 +818,26 @@ export default function MemberDashboard({
             </button>
           </form>
 
-          <button
-            onClick={onLogout}
-            className="text-xs text-gray-600 hover:text-gray-400 underline transition-all uppercase bg-transparent border-none outline-none cursor-pointer"
-          >
-            {getTranslation(languageCode, "logout")}
-          </button>
+          <div className="flex flex-col items-center space-y-2 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.clear();
+                localStorage.clear();
+                onLogout();
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer w-full"
+            >
+              🔄 RESET PAGE & DISCONNECT SESSION
+            </button>
+            <button
+              onClick={onLogout}
+              className="text-xs text-gray-500 hover:text-gray-300 underline transition-all uppercase bg-transparent border-none outline-none cursor-pointer pt-1"
+            >
+              {getTranslation(languageCode, "logout")}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1232,7 +1246,7 @@ export default function MemberDashboard({
                     </div>
                   </div>
 
-                  {/* GALLERY SUBMISSION TERMINAL - Cadet File upload */}
+                  {/* GALLERY SUBMISSION TERMINAL - Student File upload */}
                   <div className="p-6 rounded-2xl border border-gray-900 bg-gray-950/40 space-y-4">
                     <div className="border-b border-gray-900 pb-2.5">
                       <span className="text-[9px] font-mono text-cyber-cyan uppercase tracking-widest font-bold">MEDIA FILE ARCHIVER</span>
