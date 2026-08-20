@@ -3,7 +3,7 @@ import {
   User, Award, BookOpen, MessageSquare, Bot, FolderClosed, Bell, LogOut, 
   Globe, Settings, Terminal, ExternalLink, ShieldCheck, Check, Loader2, 
   HelpCircle, Send, Cpu, Clock, Trash2, Plus, Sparkles, LayoutDashboard, ChevronRight, Trophy, Lock, AlertTriangle, FileText, Video, Upload, Image as ImageIcon,
-  Shield, Code, Palette, Calendar, Activity, Wifi, RefreshCw
+  Shield, Code, Palette, Calendar, Activity, Wifi, RefreshCw, CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { User as UserType, Profile, Department, Quiz, QuizResult, Message, Event, Notification, GalleryItem } from "../types";
@@ -55,6 +55,7 @@ export default function MemberDashboard({
   });
   const [customPages, setCustomPages] = useState<any[]>([]);
   const [classSchedules, setClassSchedules] = useState<any[]>([]);
+  const [executivesList, setExecutivesList] = useState<any[]>([]);
   const [activeAlert, setActiveAlert] = useState<any | null>(null);
   const [customApiKey, setCustomApiKey] = useState<string>(() => {
     return localStorage.getItem("customApiKey") || "";
@@ -110,6 +111,7 @@ export default function MemberDashboard({
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<{ [key: number]: number }>({});
   const [quizTimer, setQuizTimer] = useState(0);
+  const [quizTotalSeconds, setQuizTotalSeconds] = useState(600);
   const [quizIntervalId, setQuizIntervalId] = useState<any>(null);
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
   const [lastQuizScore, setLastQuizScore] = useState<QuizResult | null>(null);
@@ -181,7 +183,7 @@ export default function MemberDashboard({
   // Fetch Dashboard states
   const fetchDashboardData = async () => {
     try {
-      const [deptsRes, quizzesRes, resultsRes, messagesRes, evtsRes, notifsRes, logsRes, pagesRes, classesRes, alertRes, galleryRes] = await Promise.all([
+      const [deptsRes, quizzesRes, resultsRes, messagesRes, evtsRes, notifsRes, logsRes, pagesRes, classesRes, alertRes, galleryRes, execsRes] = await Promise.all([
         fetch("/api/departments"),
         fetch("/api/quizzes"),
         fetch(`/api/certificates?userId=${user.id}`),
@@ -192,7 +194,8 @@ export default function MemberDashboard({
         fetch("/api/admin/pages"),
         fetch("/api/admin/classes"),
         fetch("/api/admin/alert"),
-        fetch("/api/gallery")
+        fetch("/api/gallery"),
+        fetch("/api/executives")
       ]);
 
       if (deptsRes.ok) setDepartments(await deptsRes.json());
@@ -212,6 +215,7 @@ export default function MemberDashboard({
         setActiveAlert(alertData.activeAlert || null);
       }
       if (galleryRes.ok) setGallery(await galleryRes.json());
+      if (execsRes.ok) setExecutivesList(await execsRes.json());
     } catch (err) {
       console.error("Error fetching member dashboard data:", err);
     }
@@ -223,21 +227,20 @@ export default function MemberDashboard({
 
   // Quiz timer system
   useEffect(() => {
-    if (activeQuiz && quizTimer > 0) {
-      const id = setInterval(() => {
-        setQuizTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(id);
-            handleAutoSubmitQuiz();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      setQuizIntervalId(id);
-      return () => clearInterval(id);
-    }
-  }, [activeQuiz, quizTimer]);
+    if (!activeQuiz) return;
+    const id = setInterval(() => {
+      setQuizTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(id);
+          handleSubmitQuiz();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    setQuizIntervalId(id);
+    return () => clearInterval(id);
+  }, [activeQuiz]);
 
   // Read Notifications on Mount or tab enter
   const handleMarkNotificationsRead = async () => {
@@ -554,7 +557,9 @@ export default function MemberDashboard({
   const handleStartQuiz = (quiz: Quiz) => {
     setActiveQuiz(quiz);
     setQuizAnswers({});
-    setQuizTimer(quiz.duration * 60);
+    const totalSecs = Math.max(1, (quiz.duration || 10) * 60);
+    setQuizTimer(totalSecs);
+    setQuizTotalSeconds(totalSecs);
     setLastQuizScore(null);
   };
 
@@ -917,6 +922,16 @@ export default function MemberDashboard({
             </button>
 
             <button
+              onClick={() => setActiveTab("routines")}
+              className={`w-full flex items-center space-x-2 px-3.5 py-2.5 rounded-lg transition-all ${
+                activeTab === "routines" ? "bg-cyber-cyan text-gray-950 font-bold" : "text-gray-400 hover:text-white hover:bg-gray-900/40"
+              }`}
+            >
+              <Clock className="w-4 h-4 shrink-0 text-amber-400" />
+              <span>CLASS ROUTINE & CODES</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab("quizzes")}
               className={`w-full flex items-center space-x-2 px-3.5 py-2.5 rounded-lg transition-all ${
                 activeTab === "quizzes" ? "bg-cyber-cyan text-gray-950 font-bold" : "text-gray-400 hover:text-white hover:bg-gray-900/40"
@@ -944,6 +959,16 @@ export default function MemberDashboard({
             >
               <FolderClosed className="w-4 h-4 shrink-0" />
               <span>{getTranslation(languageCode, "departments")}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("executives")}
+              className={`w-full flex items-center space-x-2 px-3.5 py-2.5 rounded-lg transition-all ${
+                activeTab === "executives" ? "bg-cyber-cyan text-gray-950 font-bold" : "text-gray-400 hover:text-white hover:bg-gray-900/40"
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>EXECUTIVE BOARD</span>
             </button>
 
             <button
@@ -995,7 +1020,7 @@ export default function MemberDashboard({
                   activeTab === `custom-${cp.id}` ? "bg-cyber-cyan text-gray-950 font-bold" : "text-gray-400 hover:text-white hover:bg-gray-900/40"
                 }`}
               >
-                <FileText className="w-4 h-4 shrink-0" />
+                <FileText className="w-4 h-4 shrink-0 text-cyber-cyan" />
                 <span className="truncate">{cp.title}</span>
               </button>
             ))}
@@ -1929,40 +1954,159 @@ export default function MemberDashboard({
                 </>
               ) : (
                 <div className="space-y-6">
-                  {/* Active Exam Frame */}
-                  <div className="flex justify-between items-center bg-gray-950 p-4 border border-gray-900 rounded-xl font-mono text-xs text-gray-400">
-                    <div>
-                      <span className="text-gray-500 block">EXAM ACTIVE</span>
-                      <strong className="text-white text-sm font-display">{activeQuiz.title}</strong>
-                    </div>
+                  {/* Visual Countdown Timer HUD with Animated Progress Ring */}
+                  {(() => {
+                    const totalSecs = Math.max(1, quizTotalSeconds || (activeQuiz.duration * 60));
+                    const timeRemaining = Math.max(0, quizTimer);
+                    const percentRemaining = Math.max(0, Math.min(100, (timeRemaining / totalSecs) * 100));
+                    const mins = Math.floor(timeRemaining / 60);
+                    const secs = timeRemaining % 60;
+                    
+                    // SVG Circular Progress Math: radius = 38, circumference = 2 * PI * 38 ≈ 238.76
+                    const radius = 38;
+                    const circumference = 2 * Math.PI * radius;
+                    const strokeDashoffset = circumference - (percentRemaining / 100) * circumference;
 
-                    <div className="flex items-center space-x-4">
-                      {/* Timer */}
-                      <div className="flex items-center space-x-1.5 px-3 py-1 bg-red-950/40 border border-red-900/60 rounded text-red-400 font-bold">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>
-                          {Math.floor(quizTimer / 60)}:{String(quizTimer % 60).padStart(2, "0")}
-                        </span>
+                    const answeredCount = Object.keys(quizAnswers).length;
+                    const totalQuestions = activeQuiz.questions.length;
+                    const isLowTime = timeRemaining <= 60 && timeRemaining > 0;
+                    const isCritical = timeRemaining <= 30 && timeRemaining > 0;
+
+                    // Color theme logic (Green -> Blue -> Red)
+                    const ringColor = percentRemaining > 50 
+                      ? "#10b981" // Plane Emerald Green
+                      : percentRemaining > 20 
+                      ? "#0ea5e9" // Plane Sky Blue
+                      : "#ef4444"; // Warning Red
+
+                    return (
+                      <div className="space-y-4">
+                        {/* Sticky Assessment Status Bar */}
+                        <div className="sticky top-20 z-30 p-4 bg-gray-950/95 backdrop-blur-md border border-gray-800 rounded-2xl shadow-xl space-y-3">
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            {/* Left: Exam Info & Progress */}
+                            <div className="flex items-center space-x-4 w-full sm:w-auto">
+                              {/* Circular Progress Ring Timer */}
+                              <div className="relative flex items-center justify-center shrink-0 w-24 h-24">
+                                <svg className="w-24 h-24 -rotate-90 transform" viewBox="0 0 96 96">
+                                  {/* Background Track */}
+                                  <circle
+                                    cx="48"
+                                    cy="48"
+                                    r={radius}
+                                    className="stroke-gray-800"
+                                    strokeWidth="6"
+                                    fill="transparent"
+                                  />
+                                  {/* Dynamic Progress Ring */}
+                                  <circle
+                                    cx="48"
+                                    cy="48"
+                                    r={radius}
+                                    stroke={ringColor}
+                                    strokeWidth="6"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={strokeDashoffset}
+                                    strokeLinecap="round"
+                                    fill="transparent"
+                                    className={`transition-all duration-1000 ease-linear ${isCritical ? "animate-pulse" : ""}`}
+                                  />
+                                </svg>
+                                
+                                {/* Centered Time Text */}
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                  <span className={`text-base font-mono font-extrabold tracking-tight ${
+                                    isCritical ? "text-red-400 animate-pulse" : percentRemaining > 50 ? "text-emerald-400" : "text-sky-400"
+                                  }`}>
+                                    {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
+                                  </span>
+                                  <span className="text-[8px] font-mono text-gray-400 uppercase font-bold tracking-wider">
+                                    REMAINING
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="px-2 py-0.5 bg-emerald-950 border border-emerald-800 text-emerald-400 text-[9px] font-mono font-bold rounded uppercase">
+                                    EXAM IN PROGRESS
+                                  </span>
+                                  {activeQuiz.negativeMarking && (
+                                    <span className="px-2 py-0.5 bg-red-950 border border-red-800 text-red-400 text-[9px] font-mono font-bold rounded uppercase">
+                                      NEGATIVE MARKING (-25%)
+                                    </span>
+                                  )}
+                                </div>
+                                <h2 className="text-base font-display font-extrabold text-white mt-1">
+                                  {activeQuiz.title}
+                                </h2>
+                                <div className="flex items-center space-x-3 text-xs font-mono text-gray-400 mt-0.5">
+                                  <span>Total Time: <strong className="text-white">{activeQuiz.duration}m</strong></span>
+                                  <span>•</span>
+                                  <span>Answered: <strong className="text-emerald-400">{answeredCount}</strong> of <strong className="text-white">{totalQuestions}</strong></span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right: Question Navigation & Submit */}
+                            <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                              <div className="hidden md:flex flex-col items-end mr-2">
+                                <span className="text-[10px] font-mono text-gray-400 uppercase">
+                                  Completion: {Math.round((answeredCount / totalQuestions) * 100)}%
+                                </span>
+                                <div className="w-32 bg-gray-900 rounded-full h-2 overflow-hidden border border-gray-800 mt-1">
+                                  <div
+                                    className="bg-emerald-500 h-full transition-all duration-300"
+                                    style={{ width: `${(answeredCount / totalQuestions) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={handleAutoSubmitQuiz}
+                                disabled={submittingQuiz}
+                                className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-mono font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                              >
+                                {submittingQuiz ? (
+                                  <>
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    <span>EVALUATING...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>SUBMIT ASSESSMENT</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Low Time Alert Banner */}
+                          {isLowTime && (
+                            <div className="p-2.5 bg-red-950/60 border border-red-700/80 rounded-xl text-red-300 text-xs font-mono flex items-center justify-between animate-pulse">
+                              <div className="flex items-center space-x-2">
+                                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                                <span>
+                                  <strong>TIME NOTICE:</strong> Less than {mins > 0 ? `${mins} minute ${secs} seconds` : `${secs} seconds`} remaining! System will auto-submit when the countdown concludes.
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-bold text-red-400 hidden sm:inline">CRITICAL PHASE</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-
-                      <button
-                        onClick={handleAutoSubmitQuiz}
-                        disabled={submittingQuiz}
-                        className="bg-cyber-cyan hover:bg-cyber-cyan/90 text-gray-950 font-bold px-4 py-1.5 rounded text-xs"
-                      >
-                        {submittingQuiz ? "EVALUATING..." : "SUBMIT EXAM"}
-                      </button>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {lastQuizScore ? (
                     <div className="p-8 rounded-2xl border border-gray-900 bg-gray-900/40 text-center space-y-4 max-w-lg mx-auto">
-                      <Trophy className="w-16 h-16 text-cyber-cyan mx-auto animate-bounce" />
+                      <Trophy className="w-16 h-16 text-emerald-400 mx-auto animate-bounce" />
                       <h2 className="text-xl font-display font-bold text-white">EVALUATION CONCLUDED</h2>
                       
-                      <div className="py-4 bg-gray-950/60 rounded-xl space-y-1 font-mono text-xs">
+                      <div className="py-4 bg-gray-950/60 rounded-xl space-y-1 font-mono text-xs border border-gray-900">
                         <span className="text-gray-500">FINAL MEMBER SCORE</span>
-                        <div className="text-3xl font-extrabold text-cyber-cyan">
+                        <div className="text-3xl font-extrabold text-emerald-400">
                           {lastQuizScore.score} / {lastQuizScore.totalPoints} POINTS
                         </div>
                         <span className="text-gray-400 block">
@@ -1971,7 +2115,7 @@ export default function MemberDashboard({
                       </div>
 
                       {lastQuizScore.certificateId ? (
-                        <div className="p-3 bg-cyber-cyan/10 border border-cyber-cyan/20 rounded-lg text-cyber-cyan text-xs font-mono leading-normal">
+                        <div className="p-3 bg-emerald-950/40 border border-emerald-700/60 rounded-lg text-emerald-300 text-xs font-mono leading-normal">
                           🎉 Outstanding! You cleared the passing threshold (&gt;80%) and won security certificate {lastQuizScore.certificateId}! Download it on the Vault page.
                         </div>
                       ) : (
@@ -1982,7 +2126,7 @@ export default function MemberDashboard({
 
                       <button
                         onClick={() => { setActiveQuiz(null); setLastQuizScore(null); }}
-                        className="bg-gray-800 hover:bg-gray-700 text-white font-mono text-xs px-6 py-2 rounded-lg"
+                        className="bg-gray-800 hover:bg-gray-700 text-white font-mono text-xs px-6 py-2.5 rounded-lg font-bold"
                       >
                         DISMISS SCREEN
                       </button>
@@ -1990,24 +2134,34 @@ export default function MemberDashboard({
                   ) : (
                     <div className="space-y-6">
                       {activeQuiz.questions.map((q, qIdx) => (
-                        <div key={qIdx} className="p-6 rounded-xl border border-gray-900 bg-gray-900/20 space-y-4">
-                          <h3 className="text-sm font-semibold text-white">
-                            <span className="text-cyber-cyan font-mono mr-2">MODULE #{qIdx + 1}:</span>
-                            {q.question}
-                          </h3>
+                        <div key={qIdx} className="p-6 rounded-xl border border-gray-900 bg-gray-900/30 space-y-4 hover:border-gray-800 transition-all">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-white">
+                              <span className="text-emerald-400 font-mono mr-2">MODULE #{qIdx + 1}:</span>
+                              {q.question}
+                            </h3>
+                            {quizAnswers[qIdx] !== undefined && (
+                              <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-950 border border-emerald-800 text-emerald-400 rounded font-bold">
+                                ✓ ANSWERED
+                              </span>
+                            )}
+                          </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
                             {q.options.map((opt, oIdx) => (
                               <button
                                 key={oIdx}
                                 onClick={() => handleSelectQuizAnswer(qIdx, oIdx)}
-                                className={`p-3 rounded-lg border text-left transition-all ${
+                                className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between ${
                                   quizAnswers[qIdx] === oIdx
-                                    ? "bg-cyber-cyan/15 border-cyber-cyan text-cyber-cyan font-bold"
-                                    : "bg-gray-900 border-gray-800 text-gray-400 hover:text-white"
+                                    ? "bg-emerald-950/60 border-emerald-500 text-emerald-300 font-bold shadow-sm"
+                                    : "bg-gray-900 border-gray-800 text-gray-300 hover:border-gray-700 hover:text-white"
                                 }`}
                               >
-                                {opt}
+                                <span>{opt}</span>
+                                {quizAnswers[qIdx] === oIdx && (
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 ml-2 shrink-0" />
+                                )}
                               </button>
                             ))}
                           </div>
@@ -2982,6 +3136,220 @@ export default function MemberDashboard({
                 </div>
 
               </div>
+            </motion.div>
+          )}
+
+          {/* CLASS ROUTINE & CODES TAB */}
+          {activeTab === "routines" && (
+            <motion.div
+              key="tab-routines"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
+            >
+              <div className="p-6 bg-gray-950/60 border border-gray-900 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-900 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400">
+                      <Clock className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-display font-extrabold text-white uppercase tracking-tight">
+                        CLASS ROUTINES & TIMETABLE CODES
+                      </h2>
+                      <p className="text-xs text-gray-400 font-mono mt-0.5">
+                        Savar Cantonment Public School and College IT Club | Schedule & Lab Meeting Matrix
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg font-bold">
+                    {classSchedules.length} SESSIONS SCHEDULED
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {classSchedules.length === 0 ? (
+                    <div className="col-span-2 p-8 text-center text-gray-500 font-mono border border-dashed border-gray-800 rounded-xl">
+                      NO ROUTINE OR CLASS CODES PUBLISHED YET.
+                    </div>
+                  ) : (
+                    classSchedules.map((cls) => (
+                      <div key={cls.id} className="p-5 bg-gray-900/40 border border-gray-900 hover:border-amber-500/50 rounded-xl space-y-3 transition-all">
+                        <div className="flex justify-between items-start">
+                          <span className="text-[10px] font-mono px-2 py-0.5 bg-gray-800 text-amber-400 font-bold rounded uppercase">
+                            {cls.type || "Club Routine"}
+                          </span>
+                          <span className="text-[10px] font-mono text-gray-400">
+                            {new Date(cls.date).toLocaleDateString()} @ {new Date(cls.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h3 className="text-base font-bold text-white">{cls.title || cls.subject}</h3>
+                          {cls.topic && <p className="text-xs text-gray-400 mt-1">{cls.topic}</p>}
+                        </div>
+
+                        <div className="pt-2 border-t border-gray-900 flex justify-between items-center text-xs font-mono">
+                          <span className="text-gray-400">Instructor: <strong className="text-white">{cls.instructor || "IT Club Executive"}</strong></span>
+                          {cls.link && cls.link.startsWith("http") ? (
+                            <a
+                              href={cls.link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold rounded-lg flex items-center space-x-1"
+                            >
+                              <Video className="w-3.5 h-3.5" />
+                              <span>JOIN LIVE</span>
+                            </a>
+                          ) : (
+                            <span className="px-2.5 py-1 bg-gray-800 text-gray-300 rounded font-bold">
+                              📍 {cls.link || "Lab 402"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* EXECUTIVE BOARD TAB */}
+          {activeTab === "executives" && (
+            <motion.div
+              key="tab-executives"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
+            >
+              <div className="p-6 bg-gray-950/60 border border-gray-900 rounded-2xl space-y-6">
+                <div className="flex items-center justify-between border-b border-gray-900 pb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-display font-extrabold text-white uppercase tracking-tight">
+                        EXECUTIVE LEADERSHIP COMMITTEE
+                      </h2>
+                      <p className="text-xs text-gray-400 font-mono mt-0.5">
+                        Savar Cantonment Public School and College IT Club | Governing Council
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg font-bold">
+                    {executivesList.length} LEADER NODES
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {executivesList.length === 0 ? (
+                    <div className="col-span-full p-8 text-center text-gray-500 font-mono border border-dashed border-gray-800 rounded-xl">
+                      NO EXECUTIVE MEMBERS LISTED.
+                    </div>
+                  ) : (
+                    executivesList.map((exec) => (
+                      <div key={exec.id} className="p-5 bg-gray-900/40 border border-gray-900 hover:border-emerald-500/50 rounded-xl space-y-4 transition-all">
+                        <div className="flex items-center space-x-3.5">
+                          <img
+                            src={exec.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150"}
+                            alt={exec.name}
+                            referrerPolicy="no-referrer"
+                            className="w-12 h-12 rounded-xl object-cover border border-emerald-500/30 bg-gray-950"
+                          />
+                          <div>
+                            <h3 className="text-sm font-bold text-white">{exec.name}</h3>
+                            <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase block">{exec.role || exec.title}</span>
+                            <span className="text-[9px] font-mono text-gray-500 block">{exec.department || "Savar Cantonment Public School and College"}</span>
+                          </div>
+                        </div>
+
+                        {exec.bio && (
+                          <p className="text-xs text-gray-400 leading-relaxed bg-gray-950/60 p-3 rounded-lg border border-gray-900">
+                            {exec.bio}
+                          </p>
+                        )}
+
+                        <div className="pt-2 border-t border-gray-900 flex justify-between items-center text-[10px] font-mono text-gray-400">
+                          <span>📧 {exec.email || "exec@cyberhub.edu"}</span>
+                          <span className="text-emerald-400 font-bold">ACTIVE LEADER</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* CUSTOM ADMIN PAGES VIEW (e.g. SCPSC IT CODE OF CONDUCT, ETC.) */}
+          {activeTab.startsWith("custom-") && (
+            <motion.div
+              key={`tab-${activeTab}`}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
+            >
+              {(() => {
+                const pageId = activeTab.replace("custom-", "");
+                const customPage = customPages.find(p => p.id === pageId);
+
+                if (!customPage) {
+                  return (
+                    <div className="p-8 text-center bg-gray-950/60 border border-gray-900 rounded-2xl space-y-3 font-mono">
+                      <HelpCircle className="w-8 h-8 text-yellow-500 mx-auto animate-bounce" />
+                      <h3 className="text-sm font-bold text-white uppercase">PAGE CONTENT NOT FOUND</h3>
+                      <p className="text-xs text-gray-400">The requested page node is unavailable.</p>
+                      <button
+                        onClick={() => setActiveTab("overview")}
+                        className="px-4 py-2 bg-cyber-cyan text-gray-950 font-bold rounded-lg text-xs"
+                      >
+                        RETURN TO OVERVIEW
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="p-6 md:p-8 bg-gray-950/60 border border-gray-900 rounded-2xl space-y-6 relative overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-gray-900 pb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-3 bg-cyber-cyan/10 border border-cyber-cyan/30 rounded-xl text-cyber-cyan">
+                          <FileText className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-display font-extrabold text-white uppercase tracking-tight">
+                            {customPage.title}
+                          </h2>
+                          <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest block">
+                            SAVAR IT CLUB OFFICIAL POLICY & INFORMATION DECK
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setActiveTab("overview")}
+                        className="px-3.5 py-1.5 bg-gray-900 hover:bg-gray-800 text-gray-300 font-mono text-xs rounded-lg border border-gray-800 transition-all cursor-pointer"
+                      >
+                        ← OVERVIEW
+                      </button>
+                    </div>
+
+                    <div className="prose prose-invert max-w-none text-xs md:text-sm font-sans text-gray-300 leading-relaxed whitespace-pre-line bg-gray-900/30 p-6 rounded-xl border border-gray-900">
+                      {customPage.content}
+                    </div>
+
+                    <div className="flex justify-between items-center text-[10px] font-mono text-gray-500 pt-4 border-t border-gray-900">
+                      <span>LAST REVISED: {customPage.updatedAt ? new Date(customPage.updatedAt).toLocaleDateString() : "OFFICIAL POLICY"}</span>
+                      <span className="text-cyber-cyan font-bold">SAVAR CANTONMENT PUBLIC SCHOOL & COLLEGE IT CLUB</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
 

@@ -9,7 +9,7 @@ import { spawn } from "child_process";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const DB_FILE = path.join(process.cwd(), "db.json");
 
 app.use(express.json());

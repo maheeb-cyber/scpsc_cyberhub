@@ -1,23 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-cyber-cyan: #38bdf8;
-  --color-cyber-pink: #ff007f;
-  --color-cyber-purple: #9d4edd;
+  --color-cyber-cyan: #0ea5e9;
+  --color-cyber-green: #10b981;
+  --color-cyber-blue: #2563eb;
   --color-cyber-bg: #030712;
-}
-
-/* Base Adjustments */
-body, div, header, aside, section, main, h1, h2, h3, h4, h5, h6, p, span, a, button, table, td, th, input, select, textarea {
-  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
-              color 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
-              box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
@@ -37,94 +29,44 @@ body {
   background: #030712;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f2937;
-  border-radius: 9999px;
+  background: #1e293b;
+  border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: #334155;
 }
 
-/* Cyber Terminal Scans & Grid */
+/* Clean Professional Grid */
 .cyber-grid {
-  background-size: 40px 40px;
+  background-size: 32px 32px;
   background-image: 
     linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
 .cyber-grid-cyan {
-  background-size: 30px 30px;
+  background-size: 32px 32px;
   background-image: 
-    linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(14, 165, 233, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(14, 165, 233, 0.05) 1px, transparent 1px);
 }
 
-.cyber-glow {
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
-}
-
-.cyber-glow-pink {
-  box-shadow: 0 0 15px rgba(255, 0, 127, 0.25);
-}
-
-/* Hologram Scanning Line Animation */
-@keyframes scanline {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100%);
-  }
-}
-
-.animate-scanline {
-  position: relative;
-  overflow: hidden;
-}
-
-.animate-scanline::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(to bottom, transparent, rgba(56, 189, 248, 0.4), transparent);
-  animation: scanline 4s linear infinite;
-}
-
-/* Custom Pulsing Dots */
-@keyframes cyber-pulse {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(0.95);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-}
-
-.animate-cyber-pulse {
-  animation: cyber-pulse 2s infinite ease-in-out;
-}
-
-/* Global Theme Classes Overrides for White Mode (White and Blue) */
+/* Global Theme Classes Overrides for Light Mode (White, Blue, Green, Black) */
 .theme-light {
-  background-color: #f8fafc !important; /* Elegant light background */
-  color: #1e3a8a !important; /* Deep royal blue text color */
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
 }
 .theme-light body {
   background-color: #f8fafc !important;
-  color: #1e3a8a !important;
+  color: #0f172a !important;
 }
 .theme-light .bg-cyber-bg {
   background-color: #f8fafc !important;
 }
 .theme-light input, .theme-light textarea, .theme-light select {
   background-color: #ffffff !important;
-  border-color: #bfdbfe !important;
-  color: #1e3a8a !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
 }
 .theme-light .bg-gray-900, 
 .theme-light .bg-gray-950, 
@@ -145,134 +87,66 @@ body {
 .theme-light .bg-gray-950\/90,
 .theme-light aside {
   background-color: #ffffff !important;
-  color: #1e3a8a !important;
+  color: #0f172a !important;
 }
 .theme-light .border-gray-900, 
-.theme-light .border-gray-850,
+.theme-light .border-gray-850, 
 .theme-light .border-gray-800, 
 .theme-light .border-gray-700,
 .theme-light .border-gray-950,
 .theme-light aside {
-  border-color: #bfdbfe !important; /* Clean light blue borders */
+  border-color: #e2e8f0 !important;
 }
 .theme-light .text-gray-400, 
 .theme-light .text-gray-500,
 .theme-light .text-gray-600 {
-  color: #3b82f6 !important; /* Bright blue secondary texts */
+  color: #475569 !important;
 }
 .theme-light .text-white {
-  color: #1e3a8a !important; /* Deep headings */
+  color: #0f172a !important;
 }
 .theme-light .text-cyber-cyan {
-  color: #2563eb !important; /* Royal blue accents */
+  color: #0284c7 !important;
 }
 .theme-light .bg-cyber-cyan {
-  background-color: #3b82f6 !important;
+  background-color: #0284c7 !important;
   color: #ffffff !important;
 }
 .theme-light .bg-cyber-cyan\/15 {
-  background-color: #eff6ff !important;
-  color: #2563eb !important;
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
 }
 .theme-light .border-cyber-cyan\/30 {
-  border-color: #bfdbfe !important;
+  border-color: #bae6fd !important;
 }
 .theme-light .text-gray-100 {
-  color: #1e3a8a !important;
+  color: #0f172a !important;
 }
 .theme-light .text-gray-300 {
-  color: #1d4ed8 !important;
+  color: #1e293b !important;
 }
 .theme-light .bg-gray-950\/90 {
   background-color: #ffffff !important;
 }
 
 .theme-cyber {
-  background-color: #020617 !important;
-  color: #38bdf8 !important;
+  background-color: #030712 !important;
+  color: #0ea5e9 !important;
 }
 .theme-cyber .border-gray-900, .theme-cyber .border-gray-800 {
-  border-color: rgba(56, 189, 248, 0.2) !important;
-}
-
-.theme-neon {
-  background-color: #0a0118 !important;
-  color: #ff007f !important;
-}
-.theme-neon .border-gray-900, .theme-neon .border-gray-800 {
-  border-color: rgba(255, 0, 127, 0.2) !important;
+  border-color: #1e293b !important;
 }
 
 .theme-amoled {
   background-color: #000000 !important;
-  color: #e5e7eb !important;
+  color: #f8fafc !important;
 }
 .theme-amoled .bg-gray-900, .theme-amoled .bg-gray-950, .theme-amoled .bg-gray-900\/20, .theme-amoled .bg-gray-900\/30, .theme-amoled .bg-gray-900\/40, .theme-amoled .bg-gray-950\/20, .theme-amoled .bg-gray-950\/30, .theme-amoled .bg-gray-950\/40, .theme-amoled .bg-gray-950\/60, .theme-amoled .bg-gray-950\/70, .theme-amoled .bg-gray-950\/80 {
   background-color: #000000 !important;
-  border-color: #1f2937 !important;
+  border-color: #1e293b !important;
 }
 .theme-amoled .border-gray-900, .theme-amoled .border-gray-800 {
-  border-color: #1f2937 !important;
-}
-
-/* 3D Immersive Webscape Ground Planes */
-.perspective-container {
-  perspective: 1200px;
-  overflow: hidden;
-}
-
-.perspective-ground {
-  position: absolute;
-  bottom: 0;
-  left: -50%;
-  right: -50%;
-  height: 50%;
-  transform: rotateX(72deg) translateZ(-80px);
-  transform-origin: center bottom;
-  opacity: 0.18;
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(56, 189, 248, 0.3) 1.5px, transparent 1.5px),
-    linear-gradient(to bottom, rgba(56, 189, 248, 0.3) 1.5px, transparent 1.5px);
-  pointer-events: none;
-  animation: grid-scroll 25s linear infinite;
-}
-
-.perspective-ground-pink {
-  position: absolute;
-  top: 0;
-  left: -50%;
-  right: -50%;
-  height: 50%;
-  transform: rotateX(-72deg) translateZ(-80px);
-  transform-origin: center top;
-  opacity: 0.08;
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 0, 127, 0.3) 1.5px, transparent 1.5px),
-    linear-gradient(to bottom, rgba(255, 0, 127, 0.3) 1.5px, transparent 1.5px);
-  pointer-events: none;
-  animation: grid-scroll-reverse 35s linear infinite;
-}
-
-@keyframes grid-scroll {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 1000px; }
-}
-
-@keyframes grid-scroll-reverse {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 -1000px; }
-}
-
-.glow-card-3d {
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
-  transform-style: preserve-3d;
-}
-
-.glow-card-3d:hover {
-  transform: translateY(-4px) rotateX(2deg) rotateY(-2deg);
-  box-shadow: 0 15px 30px rgba(56, 189, 248, 0.15);
+  border-color: #1e293b !important;
 }
 
 
