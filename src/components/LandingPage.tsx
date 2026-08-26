@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { LANGUAGE_OPTIONS, getTranslation } from "../utils/translations";
 import { Executive } from "../types";
 import CyberHubLogo from "./CyberHubLogo";
+import { safeJson } from "../utils/api";
 
 interface LandingPageProps {
   onNavigateToAuth: () => void;
@@ -26,8 +27,8 @@ export default function LandingPage({ onNavigateToAuth, languageCode, onLanguage
       try {
         const res = await fetch("/api/executives");
         if (res.ok) {
-          const data = await res.json();
-          setExecutives(data || []);
+          const data = await safeJson(res, []);
+          setExecutives(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         console.error("Failed to load executives", err);

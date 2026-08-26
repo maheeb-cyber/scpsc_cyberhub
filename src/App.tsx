@@ -5,6 +5,7 @@ import AuthPage from "./components/AuthPage";
 import MemberDashboard from "./components/MemberDashboard";
 import AdminPanel from "./components/AdminPanel";
 import { Loader2 } from "lucide-react";
+import { safeJson } from "./utils/api";
 
 export default function App() {
   const [screen, setScreen] = useState<"landing" | "auth" | "dashboard" | "admin">("landing");
@@ -28,14 +29,18 @@ export default function App() {
           const parsedUser = JSON.parse(storedUser);
           const res = await fetch(`/api/user/profile?userId=${parsedUser.id}`);
           if (res.ok) {
-            const data = await res.json();
-            setUser(parsedUser);
-            setProfile(data.profile);
-            setToken(storedToken);
-            setScreen("dashboard");
-            if (data.profile.language) {
-              setLanguageCode(data.profile.language);
-              localStorage.setItem("cyber_hub_language", data.profile.language);
+            const data = await safeJson(res);
+            if (data?.profile) {
+              setUser(parsedUser);
+              setProfile(data.profile);
+              setToken(storedToken);
+              setScreen("dashboard");
+              if (data.profile.language) {
+                setLanguageCode(data.profile.language);
+                localStorage.setItem("cyber_hub_language", data.profile.language);
+              }
+            } else {
+              localStorage.clear();
             }
           } else {
             // Token stale

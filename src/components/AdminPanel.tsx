@@ -11,6 +11,7 @@ import {
 import { User, Department, Quiz, Message, Event, AuditLog, Executive } from "../types";
 import { getTranslation } from "../utils/translations";
 import CyberHubLogo from "./CyberHubLogo";
+import { safeJson } from "../utils/api";
 
 interface AdminPanelProps {
   user: User;
@@ -93,11 +94,11 @@ export default function AdminPanel({ user, onExit, onSwitchToMember, languageCod
           mode: "admin"
         })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res, {});
+      if (res.ok && data?.response) {
         setLoginAiHistory(prev => [...prev, { role: "model", text: data.response }]);
       } else {
-        setLoginAiHistory(prev => [...prev, { role: "model", text: "Admin AI Core is experiencing high demand. Please try again." }]);
+        setLoginAiHistory(prev => [...prev, { role: "model", text: data?.error || "Admin AI Core is experiencing high demand. Please try again." }]);
       }
     } catch (err) {
       setLoginAiHistory(prev => [...prev, { role: "model", text: "Offline mode. Security connection error." }]);
@@ -175,12 +176,12 @@ export default function AdminPanel({ user, onExit, onSwitchToMember, languageCod
         fetch("/api/executives")
       ]);
 
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (healthRes.ok) setHealth(await healthRes.json());
-      if (usersRes.ok) setUsersList(await usersRes.json());
-      if (logsRes.ok) setLogs(await logsRes.json());
-      if (msgRes.ok) setMessages(await msgRes.json());
-      if (execsRes.ok) setExecutives(await execsRes.json());
+      if (statsRes.ok) setStats(await safeJson(statsRes, null));
+      if (healthRes.ok) setHealth(await safeJson(healthRes, null));
+      if (usersRes.ok) setUsersList((await safeJson(usersRes, [])) || []);
+      if (logsRes.ok) setLogs((await safeJson(logsRes, [])) || []);
+      if (msgRes.ok) setMessages((await safeJson(msgRes, [])) || []);
+      if (execsRes.ok) setExecutives((await safeJson(execsRes, [])) || []);
     } catch (err) {
       console.error("Error fetching admin panel data:", err);
     }
@@ -199,9 +200,9 @@ export default function AdminPanel({ user, onExit, onSwitchToMember, languageCod
     try {
       const res = await fetch(`/api/user/profile?userId=${targetUser.id}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeJson(res, {});
         if (onSwitchToMember) {
-          onSwitchToMember(targetUser, data.profile);
+          onSwitchToMember(targetUser, data?.profile);
         } else {
           alert(`Linked to member @${targetUser.username}. Refreshing console.`);
         }
@@ -277,10 +278,12 @@ export default function AdminPanel({ user, onExit, onSwitchToMember, languageCod
     setLoading(true);
     try {
       const res = await fetch("/api/admin/backup", { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res, {});
+      if (res.ok && data?.filename) {
         alert(`SNAPSHOT ARCHIVED SUCCESSFULLY: ${data.filename}`);
         fetchAdminConsoleData();
+      } else {
+        alert(`Backup failed: ${data?.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error(err);

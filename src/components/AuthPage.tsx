@@ -3,6 +3,7 @@ import { Shield, Eye, EyeOff, UserPlus, LogIn, CheckCircle2, RefreshCw, KeyRound
 import { motion, AnimatePresence } from "motion/react";
 import { User, Profile } from "../types";
 import { LANGUAGE_OPTIONS, getTranslation } from "../utils/translations";
+import { safeJson } from "../utils/api";
 
 interface AuthPageProps {
   onAuthSuccess: (user: User, profile: Profile, token: string) => void;
@@ -201,9 +202,13 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
         body: JSON.stringify(body)
       });
 
-      const data = await res.json();
+      const data = await safeJson(res);
       if (!res.ok) {
-        throw new Error(data.error || "Authentication failed");
+        throw new Error(data?.error || `Authentication failed (Status ${res.status})`);
+      }
+
+      if (!data?.user || !data?.token) {
+        throw new Error("Invalid server authentication response. Please retry.");
       }
 
       onAuthSuccess(data.user, data.profile, data.token);

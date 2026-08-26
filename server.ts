@@ -12,7 +12,8 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const DB_FILE = path.join(process.cwd(), "db.json");
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // ----------------------------------------------------
 // DATABASE SYSTEM (JSON FILE PERSISTENCE)
@@ -1967,6 +1968,24 @@ app.delete("/api/admin/classes/:id", (req, res) => {
     return res.json({ success: true, classes: db.classes });
   }
   res.status(404).json({ error: "Class not found" });
+});
+
+// API Catch-All: prevent any unmatched /api calls from falling through to Vite HTML
+app.all(/^\/api(\/.*)?$/, (req, res) => {
+  res.status(404).json({ error: `API route ${req.method} ${req.originalUrl} not found` });
+});
+
+// Global API error handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("[API Error]", err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  const status = typeof err.status === "number" ? err.status : typeof err.statusCode === "number" ? err.statusCode : 500;
+  res.status(status).json({
+    error: err.message || "Internal server error",
+    status
+  });
 });
 
 // ----------------------------------------------------

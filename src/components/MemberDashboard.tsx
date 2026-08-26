@@ -11,6 +11,7 @@ import VisualCalendar from "./VisualCalendar";
 import ThreeDTiltCard from "./ThreeDTiltCard";
 import { LANGUAGE_OPTIONS, TRANSLATIONS, getTranslation } from "../utils/translations";
 import CyberHubLogo from "./CyberHubLogo";
+import { safeJson } from "../utils/api";
 
 interface MemberDashboardProps {
   user: UserType;
@@ -200,24 +201,26 @@ export default function MemberDashboard({
         fetch("/api/executives")
       ]);
 
-      if (deptsRes.ok) setDepartments(await deptsRes.json());
-      if (quizzesRes.ok) setQuizzes(await quizzesRes.json());
-      if (resultsRes.ok) setResults(await resultsRes.json());
-      if (messagesRes.ok) setMessages(await messagesRes.json());
-      if (evtsRes.ok) setEvents(await evtsRes.json());
-      if (notifsRes.ok) setNotifications(await notifsRes.json());
+      if (deptsRes.ok) setDepartments((await safeJson(deptsRes, [])) || []);
+      if (quizzesRes.ok) setQuizzes((await safeJson(quizzesRes, [])) || []);
+      if (resultsRes.ok) setResults((await safeJson(resultsRes, [])) || []);
+      if (messagesRes.ok) setMessages((await safeJson(messagesRes, [])) || []);
+      if (evtsRes.ok) setEvents((await safeJson(evtsRes, [])) || []);
+      if (notifsRes.ok) setNotifications((await safeJson(notifsRes, [])) || []);
       if (logsRes.ok) {
-        const allLogs = await logsRes.json();
-        setLogs(allLogs.filter((l: any) => l.userId === user.id));
+        const allLogs = await safeJson(logsRes, []);
+        if (Array.isArray(allLogs)) {
+          setLogs(allLogs.filter((l: any) => l.userId === user.id));
+        }
       }
-      if (pagesRes.ok) setCustomPages(await pagesRes.json());
-      if (classesRes.ok) setClassSchedules(await classesRes.json());
+      if (pagesRes.ok) setCustomPages((await safeJson(pagesRes, [])) || []);
+      if (classesRes.ok) setClassSchedules((await safeJson(classesRes, [])) || []);
       if (alertRes.ok) {
-        const alertData = await alertRes.json();
-        setActiveAlert(alertData.activeAlert || null);
+        const alertData = await safeJson(alertRes, {});
+        setActiveAlert(alertData?.activeAlert || null);
       }
-      if (galleryRes.ok) setGallery(await galleryRes.json());
-      if (execsRes.ok) setExecutivesList(await execsRes.json());
+      if (galleryRes.ok) setGallery((await safeJson(galleryRes, [])) || []);
+      if (execsRes.ok) setExecutivesList((await safeJson(execsRes, [])) || []);
     } catch (err) {
       console.error("Error fetching member dashboard data:", err);
     }
@@ -282,14 +285,14 @@ export default function MemberDashboard({
           language: languageCode
         })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res);
+      if (res.ok && data?.profile) {
         setProfile(data.profile);
         if (onProfileUpdate) onProfileUpdate(data.profile);
         setSaveStatus("SYSTEM PARAMETERS SAVED");
         setTimeout(() => setSaveStatus(""), 2000);
       } else {
-        throw new Error(data.error);
+        throw new Error(data?.error || "Failed to update profile");
       }
     } catch (err: any) {
       setSaveStatus(`ERROR: ${err.message}`);
@@ -502,11 +505,11 @@ export default function MemberDashboard({
           mode: aiMode
         })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res, {});
+      if (res.ok && data?.response) {
         setAiHistory((prev) => [...prev, { role: "model", text: data.response }]);
       } else {
-        setAiHistory((prev) => [...prev, { role: "model", text: "Error: AI cores are temporarily offline." }]);
+        setAiHistory((prev) => [...prev, { role: "model", text: data?.error || "Error: AI cores are temporarily offline." }]);
       }
     } catch (err) {
       setAiHistory((prev) => [...prev, { role: "model", text: "Security network timeout. Check connection parameters." }]);
@@ -523,13 +526,13 @@ export default function MemberDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id })
       });
+      const data = await safeJson(res, {});
       if (res.ok) {
         fetchDashboardData();
         setSaveStatus("JOINED DEPARTMENT SUCCESS");
         setTimeout(() => setSaveStatus(""), 2000);
       } else {
-        const data = await res.json();
-        alert(data.error || "Join department failed");
+        alert(data?.error || "Join department failed");
       }
     } catch (err) {
       console.error(err);
@@ -544,11 +547,11 @@ export default function MemberDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id })
       });
+      const data = await safeJson(res, {});
       if (res.ok) {
         fetchDashboardData();
       } else {
-        const data = await res.json();
-        alert(data.error);
+        alert(data?.error || "Event registration failed");
       }
     } catch (err) {
       console.error(err);
@@ -588,8 +591,8 @@ export default function MemberDashboard({
           answers: quizAnswers
         })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await safeJson(res, {});
+      if (res.ok && data?.result) {
         setLastQuizScore(data.result);
         fetchDashboardData();
       }
@@ -638,6 +641,7 @@ export default function MemberDashboard({
           userId: user.id
         })
       });
+      const data = await safeJson(res, {});
       if (res.ok) {
         setUploadTitle("");
         setUploadUrl("");
@@ -645,8 +649,7 @@ export default function MemberDashboard({
         setTimeout(() => setUploadingStatus(""), 3000);
         fetchDashboardData();
       } else {
-        const data = await res.json();
-        setUploadingStatus(`ERROR: ${data.error || "Upload failed"}`);
+        setUploadingStatus(`ERROR: ${data?.error || "Upload failed"}`);
       }
     } catch (err: any) {
       setUploadingStatus(`ERROR: ${err.message}`);
@@ -725,6 +728,7 @@ export default function MemberDashboard({
         })
       });
 
+      const data = await safeJson(res, {});
       if (res.ok) {
         setNewTitle("");
         setNewUrl("");
@@ -735,8 +739,7 @@ export default function MemberDashboard({
         setTimeout(() => setUploadProgress(""), 3000);
         fetchDashboardData();
       } else {
-        const errData = await res.json();
-        setUploadProgress(`ERROR: ${errData.error || "Upload failed"}`);
+        setUploadProgress(`ERROR: ${data?.error || "Upload failed"}`);
       }
     } catch (err: any) {
       setUploadProgress(`ERROR: ${err.message}`);
@@ -749,11 +752,11 @@ export default function MemberDashboard({
       const res = await fetch(`/api/gallery/${itemId}`, {
         method: "DELETE"
       });
+      const data = await safeJson(res, {});
       if (res.ok) {
         fetchDashboardData();
       } else {
-        const data = await res.json();
-        alert(`ERROR: ${data.error || "Delete failed"}`);
+        alert(`ERROR: ${data?.error || "Delete failed"}`);
       }
     } catch (err: any) {
       alert(`ERROR: ${err.message}`);
