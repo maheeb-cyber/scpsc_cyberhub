@@ -12,6 +12,7 @@ export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [token, setToken] = useState<string>("");
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [adminOriginalUser, setAdminOriginalUser] = useState<User | null>(null);
   const [languageCode, setLanguageCode] = useState<string>(() => {
     return localStorage.getItem("cyber_hub_language") || "en";
   });
@@ -174,8 +175,15 @@ export default function App() {
           user={user} 
           initialProfile={profile} 
           token={token}
+          adminOriginalUser={adminOriginalUser}
           onLogout={handleLogout}
-          onSwitchToAdmin={() => setScreen("admin")}
+          onSwitchToAdmin={() => {
+            if (adminOriginalUser) {
+              setUser(adminOriginalUser);
+              setAdminOriginalUser(null);
+            }
+            setScreen("admin");
+          }}
           languageCode={languageCode}
           onLanguageChange={handleLanguageChange}
           onProfileUpdate={handleProfileUpdate}
@@ -186,6 +194,14 @@ export default function App() {
         <AdminPanel 
           user={user} 
           onExit={() => setScreen("dashboard")} 
+          onSwitchToMember={(targetUser, targetProfile) => {
+            if (!adminOriginalUser) {
+              setAdminOriginalUser(user);
+            }
+            setUser(targetUser);
+            setProfile(targetProfile);
+            setScreen("dashboard");
+          }}
           languageCode={languageCode}
         />
       )}

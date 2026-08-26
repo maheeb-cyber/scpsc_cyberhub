@@ -16,6 +16,7 @@ interface MemberDashboardProps {
   user: UserType;
   initialProfile: Profile;
   token: string;
+  adminOriginalUser?: UserType | null;
   onLogout: () => void;
   onSwitchToAdmin: () => void;
   languageCode: string;
@@ -27,6 +28,7 @@ export default function MemberDashboard({
   user, 
   initialProfile, 
   token, 
+  adminOriginalUser,
   onLogout, 
   onSwitchToAdmin,
   languageCode,
@@ -849,13 +851,37 @@ export default function MemberDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-cyber-bg text-gray-100 flex flex-col md:flex-row font-sans relative perspective-container">
+    <div className="min-h-screen bg-cyber-bg text-gray-100 flex flex-col font-sans relative perspective-container">
       {/* 3D Immersive Grid Scapes */}
       <div className="perspective-ground pointer-events-none" />
       <div className="perspective-ground-pink pointer-events-none" />
       
-      {/* ENTERPRISE DASHBOARD SIDEBAR */}
-      <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-gray-900 bg-gray-950/70 backdrop-blur-xl flex flex-col justify-between p-4 shrink-0">
+      {/* ADMIN LINK ACTIVE BANNER */}
+      {adminOriginalUser && (
+        <div className="bg-emerald-950/95 border-b border-emerald-500/60 px-4 py-2.5 text-emerald-200 flex flex-wrap items-center justify-between text-xs font-mono z-50 sticky top-0 backdrop-blur-md shadow-lg">
+          <div className="flex items-center space-x-2.5">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="leading-tight">
+              <strong className="text-white">ADMIN LINKED VIEW:</strong> Impersonating student <strong className="text-emerald-300">@{user.username}</strong> ({user.name || "Student"} — Roll: {user.roll || "N/A"}, Class: {user.class || "N/A"})
+            </span>
+          </div>
+          <button
+            onClick={onSwitchToAdmin}
+            className="mt-1 sm:mt-0 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center space-x-1.5 shadow"
+          >
+            <span>Return to Admin Console</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col md:flex-row">
+        {/* ENTERPRISE DASHBOARD SIDEBAR */}
+        <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-gray-900 bg-gray-950/70 backdrop-blur-xl flex flex-col justify-between p-4 shrink-0">
         <div className="space-y-6">
           
           {/* Insignia Header */}
@@ -3527,7 +3553,7 @@ export default function MemberDashboard({
           </div>
         )}
       </AnimatePresence>
-
+      </div>
     </div>
   );
 }

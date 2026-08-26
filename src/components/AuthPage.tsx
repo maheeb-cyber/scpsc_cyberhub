@@ -102,20 +102,55 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
   };
 
   // Helper validation checks for step options
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isPersonalComplete = Boolean(name.trim() && username.trim() && avatarBase64);
-  const isAcademicComplete = Boolean(roll.trim() && className.trim() && section.trim());
-  const isSecurityComplete = Boolean(phone.trim() && email.trim() && password.length >= 6);
+  const isAcademicComplete = Boolean(
+    roll.trim() && /^\d+$/.test(roll.trim()) &&
+    className.trim() && /^\d+$/.test(className.trim()) &&
+    section.trim() && /^[a-zA-Z\s]+$/.test(section.trim())
+  );
+  const isSecurityComplete = Boolean(
+    phone.trim() && /^\d{6,15}$/.test(phone.trim()) &&
+    email.trim() && emailRegex.test(email.trim()) &&
+    password.length >= 6
+  );
 
   const getMissingFields = () => {
     const list: { field: string; tab: "personal" | "academic" | "security" }[] = [];
-    if (!avatarBase64) list.push({ field: "Profile Photo", tab: "personal" });
+    if (!avatarBase64) list.push({ field: "Profile Photo (Upload from device)", tab: "personal" });
     if (!name.trim()) list.push({ field: "Full Name", tab: "personal" });
     if (!username.trim()) list.push({ field: "Username", tab: "personal" });
-    if (!roll.trim()) list.push({ field: "Roll Number", tab: "academic" });
-    if (!className.trim()) list.push({ field: "Class", tab: "academic" });
-    if (!section.trim()) list.push({ field: "Section", tab: "academic" });
-    if (!phone.trim()) list.push({ field: "Phone Number", tab: "security" });
-    if (!email.trim()) list.push({ field: "Email Address", tab: "security" });
+    
+    if (!roll.trim()) {
+      list.push({ field: "Roll Number (Numbers only)", tab: "academic" });
+    } else if (!/^\d+$/.test(roll.trim())) {
+      list.push({ field: "Roll Number (Must be numbers only)", tab: "academic" });
+    }
+
+    if (!className.trim()) {
+      list.push({ field: "Class (Numbers only)", tab: "academic" });
+    } else if (!/^\d+$/.test(className.trim())) {
+      list.push({ field: "Class (Must be numbers only)", tab: "academic" });
+    }
+
+    if (!section.trim()) {
+      list.push({ field: "Section (Text only)", tab: "academic" });
+    } else if (!/^[a-zA-Z\s]+$/.test(section.trim())) {
+      list.push({ field: "Section (Must be text only)", tab: "academic" });
+    }
+
+    if (!phone.trim()) {
+      list.push({ field: "Phone Number (Numbers only)", tab: "security" });
+    } else if (!/^\d{6,15}$/.test(phone.trim())) {
+      list.push({ field: "Phone Number (Must be numbers only, 6-15 digits)", tab: "security" });
+    }
+
+    if (!email.trim()) {
+      list.push({ field: "Email Address (Mandatory)", tab: "security" });
+    } else if (!emailRegex.test(email.trim())) {
+      list.push({ field: "Email Address (Must be a valid format: name@domain.com)", tab: "security" });
+    }
+
     if (!password || password.length < 6) list.push({ field: "Passphrase (min 6 chars)", tab: "security" });
     return list;
   };
@@ -132,7 +167,7 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
       if (missing.length > 0) {
         setMissingFieldsList(missing.map(m => m.field));
         setShowValidationModal(true);
-        setError(`Cannot Submit: Please complete all ${missing.length} required registration fields.`);
+        setError(`Cannot Submit: Please fix the ${missing.length} required field(s).`);
         
         // Auto navigate to the first option step with missing fields
         setRegOptionTab(missing[0].tab);
@@ -144,8 +179,20 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
 
     const url = isLogin ? "/api/auth/login" : "/api/auth/register";
     const body = isLogin 
-      ? { email, password } 
-      : { email, password, username, name, roll, class: className, section, chId, phone, skills, avatar: avatarBase64 };
+      ? { email: email.trim(), password } 
+      : { 
+          email: email.trim(), 
+          password, 
+          username: username.trim(), 
+          name: name.trim(), 
+          roll: roll.trim(), 
+          class: className.trim(), 
+          section: section.trim(), 
+          chId: chId.trim(), 
+          phone: phone.trim(), 
+          skills, 
+          avatar: avatarBase64 
+        };
 
     try {
       const res = await fetch(url, {
@@ -380,35 +427,6 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
           <p className="text-xs font-mono text-emerald-400 mt-1 uppercase tracking-widest font-bold">Student Security & IT Portal</p>
         </div>
 
-        {/* STUDENT LOGIN CREDENTIALS BOX */}
-        <div className="mb-6 p-3.5 bg-gray-900/60 border border-emerald-900/60 rounded-xl text-center space-y-2">
-          <span className="block text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold">
-            🔑 STUDENT PORTAL ACCESS CREDENTIALS
-          </span>
-          <div className="bg-gray-950/80 p-2 rounded-lg border border-gray-800 text-left font-mono text-xs space-y-1">
-            <div className="flex justify-between items-center text-gray-300">
-              <span className="text-gray-500 text-[10px] uppercase font-bold">EMAIL:</span>
-              <span className="text-emerald-300 font-bold">member@cyberhub.edu</span>
-            </div>
-            <div className="flex justify-between items-center text-gray-300">
-              <span className="text-gray-500 text-[10px] uppercase font-bold">CODE NUMBER / PASSPHRASE:</span>
-              <span className="text-emerald-300 font-bold">member123</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail("member@cyberhub.edu");
-              setPassword("member123");
-              setIsLogin(true);
-              setError("");
-            }}
-            className="w-full py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 font-mono font-bold text-xs rounded-lg transition-all cursor-pointer shadow"
-          >
-            ⚡ AUTO-FILL STUDENT CREDENTIALS
-          </button>
-        </div>
-
         <AnimatePresence mode="wait">
           {!showForgotPassword ? (
             <motion.div
@@ -456,17 +474,21 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
                 {isLogin && (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-1">
-                        EMAIL ADDRESS
+                      <label className="block text-xs font-mono text-gray-400 uppercase tracking-wider mb-1 flex justify-between items-center">
+                        <span>EMAIL ADDRESS / USERNAME / ROLL NO</span>
+                        <span className="text-[10px] text-emerald-400 font-mono">LOGIN IDENTIFIER</span>
                       </label>
                       <input
-                        type="email"
+                        type="text"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="e.g. student@cyberhub.edu"
+                        placeholder="e.g. student@cyberhub.edu, username, or Roll (1024)"
                         className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
                       />
+                      <p className="text-[10px] text-gray-500 font-mono mt-1">
+                        💡 You can log in using your registered Email, Username, or Student Roll number.
+                      </p>
                     </div>
 
                     <div>
@@ -690,44 +712,50 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
                         <div className="grid grid-cols-3 gap-2">
                           <div>
                             <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1 flex justify-between">
-                              <span>ROLL NO *</span>
-                              {hasAttemptedSubmit && !roll.trim() && (
+                              <span>ROLL NO (NUMBER) *</span>
+                              {hasAttemptedSubmit && (!roll.trim() || !/^\d+$/.test(roll.trim())) && (
                                 <span className="text-red-400 font-bold">*</span>
                               )}
                             </label>
                             <input
                               type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                               required
                               value={roll}
-                              onChange={(e) => setRoll(e.target.value)}
+                              onChange={(e) => setRoll(e.target.value.replace(/\D/g, ""))}
                               placeholder="e.g. 1024"
                               className={`w-full bg-gray-900 border rounded-lg px-2.5 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 font-mono ${
-                                hasAttemptedSubmit && !roll.trim() ? "border-red-500/80" : "border-gray-800"
+                                hasAttemptedSubmit && (!roll.trim() || !/^\d+$/.test(roll.trim())) ? "border-red-500/80" : "border-gray-800"
                               }`}
                             />
+                            <span className="text-[8px] text-gray-500 font-mono block mt-0.5">Numbers only</span>
                           </div>
                           <div>
                             <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1 flex justify-between">
-                              <span>CLASS *</span>
-                              {hasAttemptedSubmit && !className.trim() && (
+                              <span>CLASS (NUMBER) *</span>
+                              {hasAttemptedSubmit && (!className.trim() || !/^\d+$/.test(className.trim())) && (
                                 <span className="text-red-400 font-bold">*</span>
                               )}
                             </label>
                             <input
                               type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                               required
                               value={className}
-                              onChange={(e) => setClassName(e.target.value)}
+                              onChange={(e) => setClassName(e.target.value.replace(/\D/g, ""))}
                               placeholder="e.g. 10"
                               className={`w-full bg-gray-900 border rounded-lg px-2.5 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 font-mono ${
-                                hasAttemptedSubmit && !className.trim() ? "border-red-500/80" : "border-gray-800"
+                                hasAttemptedSubmit && (!className.trim() || !/^\d+$/.test(className.trim())) ? "border-red-500/80" : "border-gray-800"
                               }`}
                             />
+                            <span className="text-[8px] text-gray-500 font-mono block mt-0.5">e.g. 6-12</span>
                           </div>
                           <div>
                             <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1 flex justify-between">
-                              <span>SECTION *</span>
-                              {hasAttemptedSubmit && !section.trim() && (
+                              <span>SECTION (TEXT) *</span>
+                              {hasAttemptedSubmit && (!section.trim() || !/^[a-zA-Z\s]+$/.test(section.trim())) && (
                                 <span className="text-red-400 font-bold">*</span>
                               )}
                             </label>
@@ -735,12 +763,13 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
                               type="text"
                               required
                               value={section}
-                              onChange={(e) => setSection(e.target.value)}
-                              placeholder="e.g. A"
+                              onChange={(e) => setSection(e.target.value.replace(/[^a-zA-Z\s]/g, ""))}
+                              placeholder="e.g. A / Padma"
                               className={`w-full bg-gray-900 border rounded-lg px-2.5 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 font-mono ${
-                                hasAttemptedSubmit && !section.trim() ? "border-red-500/80" : "border-gray-800"
+                                hasAttemptedSubmit && (!section.trim() || !/^[a-zA-Z\s]+$/.test(section.trim())) ? "border-red-500/80" : "border-gray-800"
                               }`}
                             />
+                            <span className="text-[8px] text-gray-500 font-mono block mt-0.5">Letters only</span>
                           </div>
                         </div>
 
@@ -794,41 +823,45 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
                         {/* Phone */}
                         <div>
                           <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1 flex justify-between">
-                            <span>PHONE NUMBER *</span>
-                            {hasAttemptedSubmit && !phone.trim() && (
-                              <span className="text-red-400 font-bold">REQUIRED</span>
+                            <span>PHONE NUMBER (NUMBER ONLY) *</span>
+                            {hasAttemptedSubmit && (!phone.trim() || !/^\d{6,15}$/.test(phone.trim())) && (
+                              <span className="text-red-400 font-bold">REQUIRED (NUMBERS)</span>
                             )}
                           </label>
                           <input
                             type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             required
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="e.g. 017XXXXXXXX"
+                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                            placeholder="e.g. 01700000000 (Numbers only)"
                             className={`w-full bg-gray-900 border rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 font-mono ${
-                              hasAttemptedSubmit && !phone.trim() ? "border-red-500/80" : "border-gray-800"
+                              hasAttemptedSubmit && (!phone.trim() || !/^\d{6,15}$/.test(phone.trim())) ? "border-red-500/80" : "border-gray-800"
                             }`}
                           />
+                          <span className="text-[8px] text-gray-500 font-mono block mt-0.5">Numeric digits only (e.g. 01712345678)</span>
                         </div>
 
                         {/* Email */}
                         <div>
                           <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1 flex justify-between">
-                            <span>EMAIL ADDRESS *</span>
-                            {hasAttemptedSubmit && !email.trim() && (
-                              <span className="text-red-400 font-bold">REQUIRED</span>
+                            <span>EMAIL ADDRESS (MUST BE VALID) *</span>
+                            {hasAttemptedSubmit && (!email.trim() || !emailRegex.test(email.trim())) && (
+                              <span className="text-red-400 font-bold">MUST BE VALID EMAIL</span>
                             )}
                           </label>
                           <input
                             type="email"
                             required
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={(e) => setEmail(e.target.value.trim())}
                             placeholder="e.g. student@cyberhub.edu"
                             className={`w-full bg-gray-900 border rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 font-mono ${
-                              hasAttemptedSubmit && !email.trim() ? "border-red-500/80" : "border-gray-800"
+                              hasAttemptedSubmit && (!email.trim() || !emailRegex.test(email.trim())) ? "border-red-500/80" : "border-gray-800"
                             }`}
                           />
+                          <span className="text-[8px] text-gray-500 font-mono block mt-0.5">Mandatory valid email address format (name@domain.com)</span>
                         </div>
 
                         {/* Password */}

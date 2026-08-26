@@ -15,16 +15,31 @@ import CyberHubLogo from "./CyberHubLogo";
 interface AdminPanelProps {
   user: User;
   onExit: () => void;
+  onSwitchToMember?: (targetUser: User, targetProfile: any) => void;
   languageCode?: string;
 }
 
-export default function AdminPanel({ user, onExit, languageCode = "en" }: AdminPanelProps) {
+export default function AdminPanel({ user, onExit, onSwitchToMember, languageCode = "en" }: AdminPanelProps) {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     return user.role === "Admin" || user.role === "Executive" || sessionStorage.getItem("admin_authenticated") === "true";
   });
   const [adminPasscode, setAdminPasscode] = useState("");
   const [adminLoginError, setAdminLoginError] = useState("");
   const [isLoginNightMode, setIsLoginNightMode] = useState(true);
+
+  // Switching & Linking Member Account states
+  const [switchingUserId, setSwitchingUserId] = useState<string | null>(null);
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editUserData, setEditUserData] = useState<{
+    name: string;
+    roll: string;
+    class: string;
+    section: string;
+    phone: string;
+    chId: string;
+    skills: string;
+  }>({ name: "", roll: "", class: "", section: "", phone: "", chId: "", skills: "" });
 
   // Login page AI Assistant
   const [loginAiMessage, setLoginAiMessage] = useState("");
@@ -177,6 +192,69 @@ export default function AdminPanel({ user, onExit, languageCode = "en" }: AdminP
     const interval = setInterval(fetchAdminConsoleData, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Switch & Link to Member account view
+  const handleSwitchToMemberAccount = async (targetUser: User) => {
+    setSwitchingUserId(targetUser.id);
+    try {
+      const res = await fetch(`/api/user/profile?userId=${targetUser.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (onSwitchToMember) {
+          onSwitchToMember(targetUser, data.profile);
+        } else {
+          alert(`Linked to member @${targetUser.username}. Refreshing console.`);
+        }
+      } else {
+        alert("Could not load member profile details.");
+      }
+    } catch (err) {
+      alert("Error linking to member account.");
+    } finally {
+      setSwitchingUserId(null);
+    }
+  };
+
+  const handleOpenEditStudent = (usr: User) => {
+    setEditingUserId(usr.id);
+    setEditUserData({
+      name: usr.name || "",
+      roll: usr.roll || "",
+      class: usr.class || "",
+      section: usr.section || "",
+      phone: usr.phone || "",
+      chId: usr.chId || "",
+      skills: usr.skills ? usr.skills.join(", ") : ""
+    });
+  };
+
+  const handleSaveStudentInfo = async (targetUserId: string) => {
+    try {
+      const skillsArray = editUserData.skills.split(",").map(s => s.trim()).filter(Boolean);
+      const res = await fetch("/api/user/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: targetUserId,
+          name: editUserData.name,
+          roll: editUserData.roll,
+          class: editUserData.class,
+          section: editUserData.section,
+          phone: editUserData.phone,
+          chId: editUserData.chId,
+          skills: skillsArray
+        })
+      });
+      if (res.ok) {
+        setEditingUserId(null);
+        fetchAdminConsoleData();
+      } else {
+        alert("Failed to update student profile data.");
+      }
+    } catch (err) {
+      alert("Connection error saving student information.");
+    }
+  };
 
   // Update user role
   const handleUpdateRole = async (targetUserId: string, newRole: string) => {
@@ -598,7 +676,30 @@ export default function AdminPanel({ user, onExit, languageCode = "en" }: AdminP
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
+          {/* Quick Member Account Linker */}
+          <div className="hidden sm:flex items-center space-x-1.5 bg-gray-900/80 border border-emerald-500/40 px-2 py-1 rounded-lg">
+            <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider hidden lg:inline">🔗 Link Member:</span>
+            <select
+              value=""
+              onChange={(e) => {
+                const target = usersList.find(u => u.id === e.target.value);
+                if (target) handleSwitchToMemberAccount(target);
+              }}
+              disabled={switchingUserId !== null}
+              className="bg-transparent text-emerald-300 font-mono text-[11px] focus:outline-none cursor-pointer"
+            >
+              <option value="" disabled className="bg-gray-950 text-gray-400">
+                {switchingUserId ? "Linking Account..." : "Select Member View..."}
+              </option>
+              {usersList.map((u) => (
+                <option key={u.id} value={u.id} className="bg-gray-950 text-white">
+                  @{u.username} ({u.name || "Student"} - Roll: {u.roll || "N/A"})
+                </option>
+              ))}
+            </select>
+          </div>
+
           {health && (
             <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-gray-900/50 border border-gray-800 rounded-lg font-mono text-[10px]">
               <span className="w-1.5 h-1.5 rounded-full bg-cyber-cyan animate-ping" />
@@ -608,7 +709,8 @@ export default function AdminPanel({ user, onExit, languageCode = "en" }: AdminP
 
           <button
             onClick={fetchAdminConsoleData}
-            className="p-1.5 border border-gray-800 rounded-lg text-gray-400 hover:text-white hover:border-gray-700 bg-transparent"
+            title="Refresh Console Data"
+            className="p-1.5 border border-gray-800 rounded-lg text-gray-400 hover:text-white hover:border-gray-700 bg-transparent cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -802,27 +904,79 @@ export default function AdminPanel({ user, onExit, languageCode = "en" }: AdminP
           {/* 2. MODULE: STUDENTS & RBAC */}
           {activeMenu === "users" && (
             <div className="space-y-6">
-              <div className="border-b border-gray-900 pb-3">
-                <h2 className="text-lg font-display font-bold text-white">Members Registry & Role-Based Access</h2>
-                <p className="text-xs text-gray-400">Review and modify access privileges, granting Executive or Admin codes instantly.</p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-900 pb-3">
+                <div>
+                  <h2 className="text-lg font-display font-bold text-white flex items-center space-x-2">
+                    <Users className="w-5 h-5 text-cyber-pink" />
+                    <span>Members Registry & Role-Based Access</span>
+                  </h2>
+                  <p className="text-xs text-gray-400">Link with any member account, test-drive student view, modify privileges, or edit details.</p>
+                </div>
+                <div className="w-full sm:w-64">
+                  <input
+                    type="text"
+                    placeholder="Search by name, roll, class..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="w-full bg-gray-900/90 border border-gray-800 focus:border-cyber-pink text-white font-mono text-xs px-3 py-1.5 rounded-lg focus:outline-none placeholder-gray-600"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Info / Account Linking Banner */}
+              <div className="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs text-emerald-300">
+                <div className="flex items-center space-x-2.5">
+                  <Shield className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <div>
+                    <strong className="text-white block font-sans text-sm">Live Member Account Linking Active</strong>
+                    <span className="text-[11px] text-emerald-400/80">Click &quot;Open Portal&quot; on any student to test their dashboard, quizzes, and certificates in real-time.</span>
+                  </div>
+                </div>
+                <span className="text-[11px] text-emerald-400 font-bold bg-emerald-900/40 px-2.5 py-1 rounded border border-emerald-500/30 shrink-0 text-center">
+                  {usersList.length} REGISTERED STUDENTS
+                </span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse font-mono text-xs">
                   <thead>
                     <tr className="border-b border-gray-800 text-gray-500 uppercase tracking-wider text-[10px]">
-                      <th className="py-3 px-4">MEMBER USERNAME</th>
-                      <th className="py-3 px-4">EMAIL PARAMS</th>
+                      <th className="py-3 px-4">MEMBER & DETAILS</th>
+                      <th className="py-3 px-4">EMAIL & CONTACT</th>
                       <th className="py-3 px-4">ROLE LEVEL</th>
-                      <th className="py-3 px-4 text-right">OVERWRITE PRIVILEGES</th>
+                      <th className="py-3 px-4 text-right">MEMBER ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-900">
-                    {usersList.map((usr) => (
+                    {usersList
+                      .filter((u) => {
+                        if (!userSearchTerm.trim()) return true;
+                        const term = userSearchTerm.toLowerCase();
+                        return (
+                          u.username?.toLowerCase().includes(term) ||
+                          u.name?.toLowerCase().includes(term) ||
+                          u.email?.toLowerCase().includes(term) ||
+                          u.roll?.toLowerCase().includes(term) ||
+                          u.class?.toLowerCase().includes(term) ||
+                          u.chId?.toLowerCase().includes(term)
+                        );
+                      })
+                      .map((usr) => (
                       <React.Fragment key={usr.id}>
                         <tr className="hover:bg-gray-900/20">
-                          <td className="py-3.5 px-4 font-bold text-white">@{usr.username}</td>
-                          <td className="py-3.5 px-4 text-gray-400">{usr.email}</td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-white text-sm">@{usr.username}</div>
+                            <div className="text-[11px] text-gray-400 font-sans">
+                              {usr.name || "Student"} {usr.roll ? `• Roll: ${usr.roll}` : ""} {usr.class ? `(Class ${usr.class}${usr.section ? `-${usr.section}` : ""})` : ""}
+                            </div>
+                            {usr.chId && (
+                              <span className="text-[9px] text-cyber-cyan font-mono font-bold">CH-ID: {usr.chId}</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-gray-400">
+                            <div>{usr.email}</div>
+                            {usr.phone && <div className="text-[10px] text-gray-500">{usr.phone}</div>}
+                          </td>
                           <td className="py-3.5 px-4">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               usr.role === "Admin" ? "bg-cyber-pink/10 border border-cyber-pink/20 text-cyber-pink" :
@@ -833,26 +987,171 @@ export default function AdminPanel({ user, onExit, languageCode = "en" }: AdminP
                             </span>
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end space-x-2">
-                              <select
-                                value={usr.role}
-                                onChange={(e) => handleUpdateRole(usr.id, e.target.value)}
-                                className="bg-gray-900 border border-gray-800 rounded px-2 py-1 text-[11px] text-gray-300 focus:outline-none"
+                            <div className="flex items-center justify-end flex-wrap gap-1.5">
+                              {/* 1. Switch & Link to Member Account */}
+                              <button
+                                type="button"
+                                disabled={switchingUserId === usr.id}
+                                onClick={() => handleSwitchToMemberAccount(usr)}
+                                title="Open Member Portal as this user"
+                                className="px-2.5 py-1 rounded bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/60 text-emerald-300 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center space-x-1"
                               >
-                                <option value="Member">Member</option>
-                                <option value="Executive">Executive</option>
-                                <option value="Admin">Admin</option>
-                              </select>
+                                {switchingUserId === usr.id ? (
+                                  <span>Linking...</span>
+                                ) : (
+                                  <span>🔗 Open Portal</span>
+                                )}
+                              </button>
+
+                              {/* 2. Edit student info */}
+                              <button
+                                type="button"
+                                onClick={() => editingUserId === usr.id ? setEditingUserId(null) : handleOpenEditStudent(usr)}
+                                className="px-2.5 py-1 rounded bg-gray-900 hover:bg-gray-800 border border-gray-700 text-gray-300 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer"
+                              >
+                                {editingUserId === usr.id ? "Close" : "✏️ Edit"}
+                              </button>
+
+                              {/* 3. Log Activity */}
                               <button
                                 type="button"
                                 onClick={() => setSelectedActivityUser(selectedActivityUser === usr.id ? null : usr.id)}
                                 className="px-2.5 py-1 rounded bg-cyber-cyan/10 hover:bg-cyber-cyan/20 text-cyber-cyan border border-cyber-cyan/30 text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer"
                               >
-                                {selectedActivityUser === usr.id ? "Close" : "Log Activity"}
+                                {selectedActivityUser === usr.id ? "Close" : "⚡ Log"}
                               </button>
+
+                              {/* 4. Role selector */}
+                              <select
+                                value={usr.role}
+                                onChange={(e) => handleUpdateRole(usr.id, e.target.value)}
+                                className="bg-gray-900 border border-gray-800 rounded px-2 py-1 text-[11px] text-gray-300 focus:outline-none cursor-pointer"
+                              >
+                                <option value="Member">Member</option>
+                                <option value="Executive">Executive</option>
+                                <option value="Admin">Admin</option>
+                              </select>
                             </div>
                           </td>
                         </tr>
+
+                        {/* EDIT STUDENT INFO INLINE FORM */}
+                        {editingUserId === usr.id && (
+                          <tr className="bg-gray-950/70 border-t border-b border-gray-800">
+                            <td colSpan={4} className="p-4">
+                              <div className="max-w-2xl space-y-3 font-mono text-xs">
+                                <div className="flex justify-between items-center border-b border-gray-800 pb-2">
+                                  <h4 className="text-[11px] font-bold text-cyber-pink uppercase tracking-wider">
+                                    EDIT STUDENT PROFILE: @{usr.username}
+                                  </h4>
+                                  <span className="text-[10px] text-gray-500">Auto-syncs with Member Dashboard</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="block text-[9px] text-gray-400 uppercase mb-1">Full Name</label>
+                                    <input
+                                      type="text"
+                                      value={editUserData.name}
+                                      onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
+                                      className="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-white focus:outline-none focus:border-cyber-pink"
+                                      placeholder="Student Name"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] text-gray-400 uppercase mb-1">Roll Number (Numbers)</label>
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      value={editUserData.roll}
+                                      onChange={(e) => setEditUserData({ ...editUserData, roll: e.target.value.replace(/\D/g, "") })}
+                                      className="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-white focus:outline-none focus:border-cyber-pink font-mono"
+                                      placeholder="e.g. 1024"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] text-gray-400 uppercase mb-1">Class / Grade (Numbers)</label>
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      value={editUserData.class}
+                                      onChange={(e) => setEditUserData({ ...editUserData, class: e.target.value.replace(/\D/g, "") })}
+                                      className="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-white focus:outline-none focus:border-cyber-pink font-mono"
+                                      placeholder="e.g. 9 or 10 or 11"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="block text-[9px] text-gray-400 uppercase mb-1">Section (Text)</label>
+                                    <input
+                                      type="text"
+                                      value={editUserData.section}
+                                      onChange={(e) => setEditUserData({ ...editUserData, section: e.target.value.replace(/[^a-zA-Z\s]/g, "") })}
+                                      className="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-white focus:outline-none focus:border-cyber-pink font-mono"
+                                      placeholder="e.g. A / Meghna"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] text-gray-400 uppercase mb-1">Phone Number (Numbers)</label>
+                                    <input
+                                      type="tel"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      value={editUserData.phone}
+                                      onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value.replace(/\D/g, "") })}
+                                      className="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-white focus:outline-none focus:border-cyber-pink font-mono"
+                                      placeholder="e.g. 01700000000"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] text-gray-400 uppercase mb-1">Club CH-ID</label>
+                                    <input
+                                      type="text"
+                                      value={editUserData.chId}
+                                      onChange={(e) => setEditUserData({ ...editUserData, chId: e.target.value })}
+                                      className="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-white focus:outline-none focus:border-cyber-pink font-mono"
+                                      placeholder="e.g. CH-9021"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[9px] text-gray-400 uppercase mb-1">Skills (comma separated)</label>
+                                  <input
+                                    type="text"
+                                    value={editUserData.skills}
+                                    onChange={(e) => setEditUserData({ ...editUserData, skills: e.target.value })}
+                                    className="w-full bg-gray-900 border border-gray-800 rounded p-2 text-xs text-white focus:outline-none focus:border-cyber-pink"
+                                    placeholder="Python, React, Ethical Hacking, Robotics"
+                                  />
+                                </div>
+
+                                <div className="flex justify-end space-x-2 pt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingUserId(null)}
+                                    className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded text-[10px] uppercase font-bold cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveStudentInfo(usr.id)}
+                                    className="px-4 py-1.5 bg-cyber-pink text-white hover:bg-cyber-pink/90 rounded text-[10px] uppercase font-bold cursor-pointer shadow"
+                                  >
+                                    Save Student Details
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* DISPATCH ACTIVITY FORM */}
                         {selectedActivityUser === usr.id && (
                           <tr className="bg-gray-950/50">
                             <td colSpan={4} className="p-4 border-t border-b border-gray-800">

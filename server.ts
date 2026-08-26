@@ -783,14 +783,19 @@ app.get("/api/health", (req, res) => {
 app.post("/api/auth/login", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
+    return res.status(400).json({ error: "Email/Username/Roll and password are required" });
   }
 
   const db = readDB();
-  const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  const searchKey = email.trim().toLowerCase();
+  const user = db.users.find(u => 
+    u.email.toLowerCase() === searchKey ||
+    u.username.toLowerCase() === searchKey ||
+    (u.roll && u.roll.toString().trim() === email.trim())
+  );
 
   if (!user || user.password !== password) {
-    return res.status(401).json({ error: "Invalid email or password" });
+    return res.status(401).json({ error: "Invalid credentials. Please check your email/username/roll and password." });
   }
 
   // Get or create profile
@@ -802,7 +807,7 @@ app.post("/api/auth/login", (req, res) => {
       bio: "Hello, I am a proud member of Savar Cantonment IT Club!",
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200",
       banner: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000",
-      skills: ["Computing"],
+      skills: user.skills || ["Computing"],
       socialLinks: {},
       badges: ["Club Affiliate"],
       achievements: [],
@@ -810,7 +815,13 @@ app.post("/api/auth/login", (req, res) => {
       accentColor: "#00ffcc",
       language: "en",
       fontSize: "md",
-      profileVisibility: "Public"
+      profileVisibility: "Public",
+      name: user.name,
+      roll: user.roll,
+      class: user.class,
+      section: user.section,
+      chId: user.chId,
+      phone: user.phone
     };
     db.profiles.push(profile);
     writeDB(db);
@@ -824,7 +835,13 @@ app.post("/api/auth/login", (req, res) => {
       id: user.id,
       email: user.email,
       username: user.username,
-      role: user.role
+      role: user.role,
+      name: user.name || profile.name,
+      roll: user.roll || profile.roll,
+      class: user.class || profile.class,
+      section: user.section || profile.section,
+      chId: user.chId || profile.chId,
+      phone: user.phone || profile.phone
     },
     profile
   });
@@ -833,14 +850,50 @@ app.post("/api/auth/login", (req, res) => {
 // Authentication Endpoint: REGISTER
 app.post("/api/auth/register", (req, res) => {
   const { email, password, username, name, roll, class: className, section, chId, phone, skills, avatar } = req.body;
+  
+  // 1. Check mandatory fields presence
   if (!email || !password || !username || !name || !roll || !className || !section || !phone) {
-    return res.status(400).json({ error: "Name, Roll Number, Class, Section, Email, Phone, Username and Password are required fields" });
+    return res.status(400).json({ error: "All student fields (Name, Roll, Class, Section, Phone, Email, Username, Password) are required." });
+  }
+
+  // 2. Validate email must be a valid email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.trim())) {
+    return res.status(400).json({ error: "Invalid Email format. A valid email address is required (e.g. name@domain.com)." });
+  }
+
+  // 3. Validate Roll Number must be numbers only
+  const sanitizedRoll = roll.toString().trim();
+  if (!/^\d+$/.test(sanitizedRoll)) {
+    return res.status(400).json({ error: "Roll Number must be numeric digits only (e.g. 1024)." });
+  }
+
+  // 4. Validate Class must be numbers only
+  const sanitizedClass = className.toString().trim();
+  if (!/^\d+$/.test(sanitizedClass)) {
+    return res.status(400).json({ error: "Class must be a number (e.g. 9 or 10 or 11)." });
+  }
+
+  // 5. Validate Section must be text only
+  const sanitizedSection = section.toString().trim();
+  if (!/^[a-zA-Z\s]+$/.test(sanitizedSection)) {
+    return res.status(400).json({ error: "Section must contain text characters only (e.g. A, B, Padma, Science)." });
+  }
+
+  // 6. Validate Phone Number must be numbers only
+  const sanitizedPhone = phone.toString().trim();
+  if (!/^\d{6,15}$/.test(sanitizedPhone)) {
+    return res.status(400).json({ error: "Phone Number must contain numeric digits only (e.g. 01700000000)." });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Security passphrase must be at least 6 characters." });
   }
 
   const db = readDB();
-  const existingUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase() || u.username === username);
+  const existingUser = db.users.find(u => u.email.toLowerCase() === email.trim().toLowerCase() || u.username.toLowerCase() === username.trim().toLowerCase());
   if (existingUser) {
-    return res.status(400).json({ error: "User with this email or username already exists" });
+    return res.status(400).json({ error: "A student with this email address or username is already registered." });
   }
 
   const userId = `u-${Date.now()}`;
@@ -853,40 +906,40 @@ app.post("/api/auth/register", (req, res) => {
 
   const newUser: User = { 
     id: userId, 
-    email, 
+    email: email.trim(), 
     password, 
     role, 
-    username,
-    name,
-    roll,
-    class: className,
-    section,
-    chId,
-    phone,
+    username: username.trim(),
+    name: name.trim(),
+    roll: sanitizedRoll,
+    class: sanitizedClass,
+    section: sanitizedSection,
+    chId: chId ? chId.trim() : `CH-${sanitizedClass}${sanitizedRoll.slice(-3)}`,
+    phone: sanitizedPhone,
     skills: parsedSkills
   };
 
   const newProfile: Profile = {
     userId,
-    username,
-    bio: `Hi! I am @${username}, Class ${className} (${section}) student. Proud member of Savar Cantonment Public School & College IT Club.`,
+    username: username.trim(),
+    bio: `Hi! I am @${username.trim()}, Class ${sanitizedClass} (${sanitizedSection}) student. Proud member of Savar Cantonment Public School & College IT Club.`,
     avatar: avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200",
     banner: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000",
     skills: parsedSkills,
     socialLinks: {},
-    badges: ["New Recruit", `Class ${className} Student`],
+    badges: ["New Recruit", `Class ${sanitizedClass} Student`],
     achievements: [],
     theme: "Dark",
     accentColor: "#38bdf8",
     language: "en",
     fontSize: "md",
     profileVisibility: "Public",
-    name,
-    roll,
-    class: className,
-    section,
-    chId,
-    phone,
+    name: name.trim(),
+    roll: sanitizedRoll,
+    class: sanitizedClass,
+    section: sanitizedSection,
+    chId: newUser.chId,
+    phone: sanitizedPhone,
     attendance: [
       { date: "2026-07-10", status: "Present", className: "Intro to Cyber Hub Systems" },
       { date: "2026-07-12", status: "Present", className: "Vite & React Component Construction" },
