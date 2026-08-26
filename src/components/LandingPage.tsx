@@ -616,6 +616,17 @@ export default function LandingPage({ onNavigateToAuth, languageCode, onLanguage
               Savar Cantonment Public School and College IT Club
             </p>
             <p>&copy; 2026 Savar Cantonment, Dhaka, Bangladesh. All rights reserved.</p>
+            <p className="text-gray-400 pt-1">
+              Developed by{" "}
+              <a
+                href="https://maheeb1.netlify.app"
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyber-cyan hover:text-cyan-300 font-semibold underline underline-offset-2 transition-colors"
+              >
+                Md. Maheeb Hossain (maheeb1.netlify.app)
+              </a>
+            </p>
           </div>
           <div className="text-center sm:text-right text-gray-600">
             <span>PORTAL REVISION 2.4.2</span>

@@ -650,7 +650,18 @@ export default function AdminPanel({ user, onExit, onSwitchToMember, languageCod
 
         {/* Bottom copyright/footer representing Savar Cantonment Public School and College IT Club as simple human text */}
         <footer className={`w-full text-center py-4 font-mono text-[9px] ${isLoginNightMode ? "text-gray-600" : "text-slate-400"}`}>
-          Savar Cantonment Public School and College IT Club (SCPSCCH). restricted system access.
+          <p>Savar Cantonment Public School and College IT Club (SCPSCCH). Restricted system access.</p>
+          <p className="mt-1 text-gray-500">
+            Developed by{" "}
+            <a
+              href="https://maheeb1.netlify.app"
+              target="_blank"
+              rel="noreferrer"
+              className="text-cyber-pink hover:underline font-semibold"
+            >
+              Md. Maheeb Hossain (maheeb1.netlify.app)
+            </a>
+          </p>
         </footer>
       </div>
     );
@@ -2009,6 +2020,21 @@ export default function AdminPanel({ user, onExit, onSwitchToMember, languageCod
         </main>
       </div>
 
+      {/* Admin Panel Footer */}
+      <footer className="w-full border-t border-gray-900/60 py-4 px-6 text-center font-mono text-[10px] text-gray-500 bg-gray-950/40">
+        <p>Savar Cantonment Public School and College IT Club &bull; Admin Console</p>
+        <p className="mt-1">
+          Developed by{" "}
+          <a
+            href="https://maheeb1.netlify.app"
+            target="_blank"
+            rel="noreferrer"
+            className="text-cyber-pink hover:underline font-semibold"
+          >
+            Md. Maheeb Hossain (maheeb1.netlify.app)
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

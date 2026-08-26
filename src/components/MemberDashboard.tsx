@@ -1131,11 +1131,26 @@ export default function MemberDashboard({
 
           <button
             onClick={onLogout}
-            className="w-full bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white py-2 border border-gray-800 rounded-lg flex items-center justify-center space-x-1"
+            className="w-full bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white py-2 border border-gray-800 rounded-lg flex items-center justify-center space-x-1 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>{getTranslation(languageCode, "logout")}</span>
           </button>
+
+          <div className="pt-2 text-center text-[9px] text-gray-600 space-y-0.5">
+            <p>SCPSCCH Portal</p>
+            <p>
+              Dev:{" "}
+              <a
+                href="https://maheeb1.netlify.app"
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyber-cyan hover:underline font-semibold"
+              >
+                Md. Maheeb Hossain
+              </a>
+            </p>
+          </div>
         </div>
       </aside>
 
@@ -3383,6 +3398,22 @@ export default function MemberDashboard({
           )}
 
         </AnimatePresence>
+
+        {/* Member Portal Footer */}
+        <footer className="w-full border-t border-gray-900/60 mt-12 py-6 text-center font-mono text-[10px] text-gray-500">
+          <p>Savar Cantonment Public School and College IT Club &bull; Member Portal</p>
+          <p className="mt-1">
+            Developed by{" "}
+            <a
+              href="https://maheeb1.netlify.app"
+              target="_blank"
+              rel="noreferrer"
+              className="text-cyber-cyan hover:underline font-semibold"
+            >
+              Md. Maheeb Hossain (maheeb1.netlify.app)
+            </a>
+          </p>
+        </footer>
       </main>
 
       {/* 1. ADMIN PANEL ACCESS KEY VERIFICATION OVERLAY */}

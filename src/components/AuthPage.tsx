@@ -1054,6 +1054,22 @@ export default function AuthPage({ onAuthSuccess, languageCode, onLanguageChange
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Footer Credit */}
+        <div className="mt-8 text-center font-mono text-[10px] text-gray-500 space-y-1">
+          <p>Savar Cantonment Public School and College IT Club</p>
+          <p>
+            Developed by{" "}
+            <a
+              href="https://maheeb1.netlify.app"
+              target="_blank"
+              rel="noreferrer"
+              className="text-cyber-cyan hover:text-cyan-300 hover:underline font-semibold"
+            >
+              Md. Maheeb Hossain (maheeb1.netlify.app)
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
